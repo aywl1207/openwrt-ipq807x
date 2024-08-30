@@ -16,17 +16,17 @@ jobs:
                 ./scripts/feeds update -a
                 ./scripts/feeds install -a
 
-            - name: Import full config for IPQ807x NSS Generic
+            - name: Import full config for IPQ807x NSS Qnap 301w
               run: |
-                mv .qnap_301w_config .config
+                mv .full_config_qnap_301w .config
 
             - name: QoL fixes on default config
               run: |
                 mkdir -p files/etc/uci-defaults
                 cat > files/etc/uci-defaults/99-qol_fixes << EOF
-                uci set wireless.radio0.country='US'
-                uci set wireless.radio1.country='US'
-                uci set wireless.radio2.country='US'
+                uci set wireless.radio0.country='HK'
+                uci set wireless.radio1.country='HK'
+                uci set wireless.radio2.country='HK'
                 uci set wireless.radio1.disabled=0
                 uci set wireless.radio2.disabled=0
                 uci set pbuf.opt.memory_profile=auto
