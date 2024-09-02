@@ -1,10 +1,10 @@
-name: Build IPQ807x NSS WiFi for Qnap 301w
+name: Build IPQ807x NSS WiFi for devices with 1G memory profile 
 
 on: workflow_dispatch
 
 jobs:
     build:
-        name: Prepare and build IPQ807x NSS images for Qnap 301w
+        name: Prepare and build IPQ807x NSS images for devices with 1G memory profile
         runs-on: ubuntu-latest
 
         steps:
@@ -20,9 +20,9 @@ jobs:
                 ./scripts/feeds update -a
                 ./scripts/feeds install -a
 
-            - name: Import full config for IPQ807x NSS Qnap 301w
+            - name: Import full config for IPQ807x NSS
               run: |
-                mv .full_config_qnap_301w .config
+                mv .full_config_MEM_1024 .config
 
             - name: QoL fixes on default config
               run: |
@@ -64,9 +64,9 @@ jobs:
             - name: Create a release
               uses: "ncipollo/release-action@v1"
               with:
-                name: "Updated prebuilt images for QNAP 301w (NSS-WiFi) ${{ env.NOW }}"
+                name: "${{ env.NOW }} | Updated prebuilt images for devices with 1G memory profile (NSS-WiFi)"
                 commit: "main_nss"
-                tag: "qnap-301w-ipq807x-nsswifi-${{ env.NOW }}"
+                tag: "ipq807x-nsswifi-1G-${{ env.NOW }}"
                 generateReleaseNotes: true
                 makeLatest: true
                 artifacts: bin/targets/qualcommax/ipq807x/*
