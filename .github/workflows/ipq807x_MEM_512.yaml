@@ -65,7 +65,7 @@ jobs:
               uses: "ncipollo/release-action@v1"
               with:
                 name: "${{ env.NOW }} | Updated prebuilt images for devices with 512M memory profile (NSS-WiFi)"
-                commit: "main_nss"
+                commit: "b_main_nss"
                 tag: "ipq807x-nsswifi-512M-${{ env.NOW }}"
                 generateReleaseNotes: true
                 makeLatest: true
