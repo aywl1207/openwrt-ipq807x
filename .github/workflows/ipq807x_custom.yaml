@@ -1,10 +1,10 @@
-name: Build IPQ807x NSS WiFi for devices with 1G memory profile 
+name: Build IPQ807x NSS WiFi for devices 
 
 on: workflow_dispatch
 
 jobs:
     build:
-        name: Prepare and build IPQ807x NSS images for devices with 1G memory profile
+        name: Prepare and build IPQ807x NSS images for devices
         runs-on: ubuntu-latest
 
         steps:
@@ -22,7 +22,7 @@ jobs:
 
             - name: Import full config for IPQ807x NSS
               run: |
-                mv .full_config_MEM_1024 .config
+                mv .full_custom_config .config
 
             - name: QoL fixes on default config
               run: |
@@ -64,9 +64,9 @@ jobs:
             - name: Create a release
               uses: "ncipollo/release-action@v1"
               with:
-                name: "${{ env.NOW }} | Updated prebuilt images for devices with 1G memory profile (NSS-WiFi)"
+                name: "${{ env.NOW }} | Updated custom prebuilt images for devices (NSS-WiFi)"
                 commit: "b_main_nss"
-                tag: "ipq807x-nsswifi-1G-${{ env.NOW }}"
+                tag: "ipq807x-nsswifi-${{ env.NOW }}"
                 generateReleaseNotes: true
                 makeLatest: true
                 artifacts: bin/targets/qualcommax/ipq807x/*
