@@ -1,0 +1,75 @@
+name: Sync Fork and Add Customization
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *' # Runs every day at midnight UTC
+
+permissions:
+  contents: write
+  actions: write
+  pull-requests: write
+  packages: write
+
+jobs:
+  auto_fork:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Git configuration
+        run: |
+          git config --global user.name "aywl1207"
+          git config --global user.email "alanyenhk@gmail.com"
+      - name: Check out code
+        uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.PAT }}
+
+      - name: Copy existing workflow file
+        run: |
+          cp .github/workflows/sync_fork_with_customization.yaml /tmp/sync_fork_with_customization.yaml
+          
+      - name: Fetch and reset to upstream/main_nss
+        run: |
+          git remote add upstream https://github.com/AgustinLorenzo/openwrt.git
+          git fetch upstream
+          git reset --hard upstream/main_nss
+          
+      - name: Push rebased changes excluding workflow file
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+        run: |
+          git push origin custom_main_nss --force
+          
+      - name: Restore workflow file
+        run: |
+          cp /tmp/sync_fork_with_customization.yaml .github/workflows/sync_fork_with_customization.yaml
+          
+      - name: Add workflow file after reset
+        run: |
+          git add .github/workflows/sync_fork_with_customization.yaml
+          
+      - name: Clone and Move Openwrt-cloudflared
+        run: |
+          git clone https://github.com/moetayuko/openwrt-cloudflared.git openwrt-cloudflared
+          mv openwrt-cloudflared/golang package/
+          rm -rf openwrt-cloudflared
+          
+      - name: Clone Argon theme
+        run: |
+          mkdir -p package/luci-theme-argon
+          curl -L https://github.com/jerrykuku/luci-theme-argon/archive/refs/heads/master.zip -o master.zip
+          unzip master.zip -d package
+          mv package/luci-theme-argon-master/* package/luci-theme-argon/
+          rm -rf package/luci-theme-argon-master master.zip
+          
+      - name: Add custom feed for Golang
+        run: echo "src-git golang https://github.com/moetayuko/openwrt-cloudflared" >> feeds.conf.default
+         
+      - name: Commit customization changes
+        run: |
+          git add .
+          git commit -m "Applied customizations"
+          
+      - name: Push customization changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+        run: git push origin custom_main_nss

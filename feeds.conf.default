@@ -8,3 +8,4 @@ src-git sqm_scripts_nss https://github.com/qosmio/sqm-scripts-nss.git
 #src-git targets https://github.com/openwrt/targets.git
 #src-git oldpackages http://git.openwrt.org/packages.git
 #src-link custom /usr/src/openwrt/custom-feed
+src-git golang https://github.com/moetayuko/openwrt-cloudflared
