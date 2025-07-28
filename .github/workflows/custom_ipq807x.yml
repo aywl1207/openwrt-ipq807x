@@ -117,7 +117,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           name: "${{ env.NOW }} | Updated custom prebuilt images for devices (NSS-WiFi)"
-          commit: "main"
+          commit: "custom_main_nss"
           tag: "ipq807x-nsswifi-${{ env.NOW }}"
           generateReleaseNotes: true
           makeLatest: true
