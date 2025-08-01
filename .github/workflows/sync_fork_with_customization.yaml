@@ -1,0 +1,66 @@
+name: Sync Fork and Apply Customizations
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 3'  # Runs every Wednesday at midnight UTC
+
+permissions:
+  contents: write
+
+jobs:
+  sync_fork:
+    runs-on: ubuntu-latest
+    steps:
+    
+      - name: Check out code
+        uses: actions/checkout@v2.5.0 # Pinned to a specific version for stability
+        with:
+          token: ${{ secrets.PAT }}
+
+      - name: Set up Git configuration
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          
+      - name: Backup Necessary Files and Reset tree
+        run: |
+          echo "Backing up necessary files..."
+          cp .github/workflows/sync_fork_with_customization.yaml /tmp/sync_fork_with_customization.yaml
+          cp .github/workflows/custom_ipq807x.yml /tmp/custom_ipq807x.yml
+          cp .full_custom_config /tmp/.full_custom_config
+          cp README.md /tmp/README.md
+          git remote add upstream https://github.com/AgustinLorenzo/openwrt.git
+          git fetch upstream
+          git reset --hard upstream/main_nss
+          echo "Restoring necessary files..."
+          cp /tmp/sync_fork_with_customization.yaml .github/workflows/sync_fork_with_customization.yaml
+          cp /tmp/custom_ipq807x.yml .github/workflows/custom_ipq807x.yml
+          cp /tmp/.full_custom_config .full_custom_config
+          cp /tmp/README.md README.md 
+          git add .
+          
+      - name: Push rebased changes excluding workflow file
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+        run: git push origin custom_main_nss --force
+
+      - name: Clone Argon theme
+        run: |
+          echo "Cloning Argon theme..."
+          mkdir -p package/luci-theme-argon
+          curl -L https://github.com/jerrykuku/luci-theme-argon/archive/refs/heads/master.zip -o master.zip
+          unzip master.zip -d package
+          mv package/luci-theme-argon-master/* package/luci-theme-argon/
+          rm -rf package/luci-theme-argon-master master.zip
+          
+      - name: Commit customization changes
+        run: |
+          echo "Committing customization changes..."
+          git add .
+          git commit -m "Added .full_custom_config, custom_ipq807x.yml, sync_fork_with_customization.yaml and luci-theme-argon packages. Also updated README.md"
+          
+      - name: Push customization changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+        run: git push origin custom_main_nss
