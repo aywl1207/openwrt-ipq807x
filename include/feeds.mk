@@ -34,7 +34,7 @@ endef
 # 1: destination file
 define FeedSourcesAppendOPKG
 ( \
-  echo 'src/gz %d_core %U/targets/%S/packages'; \
+  echo 'src/gz %d_core https://openwrtdata.agustinls.com/nss-wifi/$(shell date +"%Y%m%d")/packages'; \
   $(strip $(if $(CONFIG_PER_FEED_REPO), \
 	echo 'src/gz %d_base %U/packages/%A/base'; \
 	$(if $(CONFIG_BUILDBOT), \
@@ -50,7 +50,7 @@ define FeedSourcesAppendAPK
 ( \
   echo '# This file is auto-generated and build-specific, any changes will be intentionally lost in sysupgrade.'; \
   echo '# Add your custom feeds to /etc/apk/repositories.d/customfeeds.list'; \
-  echo '%U/targets/%S/packages/packages.adb'; \
+  echo 'https://openwrtdata.agustinls.com/nss-wifi/$(shell date +"%Y%m%d")/packages/packages.adb'; \
   $(strip $(if $(CONFIG_PER_FEED_REPO), \
 	echo '%U/packages/%A/base/packages.adb'; \
 	$(if $(CONFIG_BUILDBOT), \
