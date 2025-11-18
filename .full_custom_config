@@ -550,6 +550,7 @@ CONFIG_KERNEL_STACKPROTECTOR=y
 # CONFIG_PKG_FORTIFY_SOURCE_NONE is not set
 CONFIG_PKG_FORTIFY_SOURCE_1=y
 # CONFIG_PKG_FORTIFY_SOURCE_2 is not set
+# CONFIG_PKG_FORTIFY_SOURCE_3 is not set
 # CONFIG_PKG_RELRO_NONE is not set
 # CONFIG_PKG_RELRO_PARTIAL is not set
 CONFIG_PKG_RELRO_FULL=y
@@ -578,7 +579,8 @@ CONFIG_MUSL_DISABLE_CRYPT_SIZE_HACK=y
 CONFIG_GDB=y
 # CONFIG_GDB_PYTHON is not set
 CONFIG_HAS_BPF_TOOLCHAIN=y
-# CONFIG_HAS_PREBUILT_LLVM_TOOLCHAIN is not set
+CONFIG_HAS_PREBUILT_LLVM_TOOLCHAIN=y
+CONFIG_USE_LLVM_PREBUILT=y
 CONFIG_USE_MUSL=y
 CONFIG_SSP_SUPPORT=y
 CONFIG_BINUTILS_VERSION_2_44=y
@@ -2862,13 +2864,6 @@ CONFIG_ZABBIX_POSTGRESQL=y
 # openwisp
 #
 # CONFIG_PACKAGE_netjson-monitoring is not set
-
-#
-# netjson-monitoring Configuration
-#
-CONFIG_NETJSON_MONITORING_IWINFO=y
-# end of netjson-monitoring Configuration
-
 # CONFIG_PACKAGE_openwisp-config is not set
 # CONFIG_PACKAGE_openwisp-monitoring is not set
 # end of openwisp
@@ -2881,6 +2876,7 @@ CONFIG_NETJSON_MONITORING_IWINFO=y
 # CONFIG_PACKAGE_btop is not set
 # CONFIG_PACKAGE_debian-archive-keyring is not set
 # CONFIG_PACKAGE_debootstrap is not set
+# CONFIG_PACKAGE_earlyoom is not set
 # CONFIG_PACKAGE_fluent-bit is not set
 # CONFIG_PACKAGE_gkrellmd is not set
 CONFIG_PACKAGE_htop=y
@@ -3001,6 +2997,8 @@ CONFIG_PACKAGE_ipq-wifi-linksys_mx5300=m
 CONFIG_PACKAGE_ipq-wifi-linksys_mx8500=m
 # CONFIG_PACKAGE_ipq-wifi-linksys_spnmx56 is not set
 # CONFIG_PACKAGE_ipq-wifi-linksys_whw03 is not set
+# CONFIG_PACKAGE_ipq-wifi-meraki_mr30h is not set
+# CONFIG_PACKAGE_ipq-wifi-meraki_z3 is not set
 # CONFIG_PACKAGE_ipq-wifi-netgear_lbr20 is not set
 CONFIG_PACKAGE_ipq-wifi-netgear_rax120v2=m
 CONFIG_PACKAGE_ipq-wifi-netgear_sxk80=m
@@ -3016,8 +3014,10 @@ CONFIG_PACKAGE_ipq-wifi-qnap_301w=m
 CONFIG_PACKAGE_ipq-wifi-redmi_ax6=m
 # CONFIG_PACKAGE_ipq-wifi-skspruce_wia3300-20 is not set
 CONFIG_PACKAGE_ipq-wifi-spectrum_sax1v1k=m
+# CONFIG_PACKAGE_ipq-wifi-tplink_archer-c59-v1 is not set
 # CONFIG_PACKAGE_ipq-wifi-tplink_archer-c6-v2 is not set
 # CONFIG_PACKAGE_ipq-wifi-tplink_archer-c60-v1 is not set
+# CONFIG_PACKAGE_ipq-wifi-tplink_archer-c60-v2 is not set
 # CONFIG_PACKAGE_ipq-wifi-tplink_deco-x80-5g is not set
 # CONFIG_PACKAGE_ipq-wifi-tplink_eap610-outdoor is not set
 # CONFIG_PACKAGE_ipq-wifi-tplink_eap620hd-v1 is not set
@@ -3201,6 +3201,7 @@ CONFIG_PACKAGE_ath11k-firmware-qcn9074=m
 # CONFIG_PACKAGE_mt7925bt-firmware is not set
 # CONFIG_PACKAGE_mt7981-wo-firmware is not set
 # CONFIG_PACKAGE_mt7986-wo-firmware is not set
+# CONFIG_PACKAGE_mt7987-2p5g-phy-firmware is not set
 # CONFIG_PACKAGE_mt7988-2p5g-phy-firmware is not set
 # CONFIG_PACKAGE_mt7988-wo-firmware is not set
 # CONFIG_PACKAGE_murata-firmware-43430-sdio is not set
@@ -3612,8 +3613,8 @@ CONFIG_PACKAGE_kmod-input-evdev=m
 # LED modules
 #
 # CONFIG_PACKAGE_kmod-input-leds is not set
-# CONFIG_PACKAGE_kmod-led-group-multi-color is not set
 CONFIG_PACKAGE_kmod-leds-gpio=y
+# CONFIG_PACKAGE_kmod-leds-group-multicolor is not set
 # CONFIG_PACKAGE_kmod-leds-ktd202x is not set
 # CONFIG_PACKAGE_kmod-leds-lp5523 is not set
 # CONFIG_PACKAGE_kmod-leds-lp5562 is not set
@@ -3877,6 +3878,7 @@ CONFIG_PACKAGE_kmod-phy-aquantia=y
 # CONFIG_PACKAGE_kmod-phy-microchip is not set
 # CONFIG_PACKAGE_kmod-phy-qca83xx is not set
 # CONFIG_PACKAGE_kmod-phy-realtek is not set
+# CONFIG_PACKAGE_kmod-phy-rtl8261n is not set
 # CONFIG_PACKAGE_kmod-phy-smsc is not set
 # CONFIG_PACKAGE_kmod-phy-vitesse is not set
 # CONFIG_PACKAGE_kmod-phylink is not set
@@ -4436,6 +4438,7 @@ CONFIG_PACKAGE_MAC80211_MESH=y
 # CONFIG_PACKAGE_kmod-rtw88-8822be is not set
 # CONFIG_PACKAGE_kmod-rtw88-8822bu is not set
 # CONFIG_PACKAGE_kmod-rtw88-8822ce is not set
+# CONFIG_PACKAGE_kmod-rtw88-8822cs is not set
 # CONFIG_PACKAGE_kmod-rtw88-8822cu is not set
 # CONFIG_PACKAGE_kmod-rtw89-8851be is not set
 # CONFIG_PACKAGE_kmod-rtw89-8852ae is not set
@@ -4510,6 +4513,8 @@ CONFIG_GOLANG_BUILD_CACHE_DIR=""
 # Lua
 #
 # CONFIG_PACKAGE_cqueues is not set
+# CONFIG_PACKAGE_cqueues-lua5.3 is not set
+# CONFIG_PACKAGE_cqueues-lua5.4 is not set
 # CONFIG_PACKAGE_dkjson is not set
 # CONFIG_PACKAGE_json4lua is not set
 # CONFIG_PACKAGE_ldbus is not set
@@ -4586,6 +4591,8 @@ CONFIG_HAS_LUAJIT_ARCH=y
 # CONFIG_PACKAGE_luajit2 is not set
 # CONFIG_PACKAGE_lualanes is not set
 # CONFIG_PACKAGE_luaossl is not set
+# CONFIG_PACKAGE_luaossl-lua5.3 is not set
+# CONFIG_PACKAGE_luaossl-lua5.4 is not set
 # CONFIG_PACKAGE_luaposix is not set
 # CONFIG_PACKAGE_luarocks is not set
 # CONFIG_PACKAGE_luasec is not set
@@ -4664,8 +4671,6 @@ CONFIG_HAS_LUAJIT_ARCH=y
 # CONFIG_PACKAGE_python3-cachetools is not set
 # CONFIG_PACKAGE_python3-certifi is not set
 # CONFIG_PACKAGE_python3-cffi is not set
-# CONFIG_PACKAGE_python3-cgi is not set
-# CONFIG_PACKAGE_python3-cgitb is not set
 # CONFIG_PACKAGE_python3-chardet is not set
 # CONFIG_PACKAGE_python3-charset-normalizer is not set
 # CONFIG_PACKAGE_python3-ciso8601 is not set
@@ -4689,7 +4694,6 @@ CONFIG_HAS_LUAJIT_ARCH=y
 # CONFIG_PACKAGE_python3-defusedxml is not set
 # CONFIG_PACKAGE_python3-dev is not set
 # CONFIG_PACKAGE_python3-distro is not set
-# CONFIG_PACKAGE_python3-distutils is not set
 # CONFIG_PACKAGE_python3-django is not set
 # CONFIG_PACKAGE_python3-django-cors-headers is not set
 # CONFIG_PACKAGE_python3-django-restframework is not set
@@ -4738,7 +4742,6 @@ CONFIG_HAS_LUAJIT_ARCH=y
 # CONFIG_PACKAGE_python3-jsonpath-ng is not set
 # CONFIG_PACKAGE_python3-jsonschema is not set
 # CONFIG_PACKAGE_python3-jsonschema-specifications is not set
-# CONFIG_PACKAGE_python3-lib2to3 is not set
 # CONFIG_PACKAGE_python3-libmodbus is not set
 # CONFIG_PACKAGE_python3-libtorrent is not set
 # CONFIG_PACKAGE_python3-light is not set
@@ -4925,6 +4928,7 @@ CONFIG_PACKAGE_ucode-mod-uloop=y
 
 # CONFIG_PACKAGE_chicken-scheme-full is not set
 # CONFIG_PACKAGE_chicken-scheme-interpreter is not set
+# CONFIG_PACKAGE_quickjs is not set
 # CONFIG_PACKAGE_slsh is not set
 # end of Languages
 
@@ -5589,8 +5593,6 @@ CONFIG_WOLFSSL_ALT_NAMES=y
 # CONFIG_PACKAGE_libmesa-tegra is not set
 # CONFIG_PACKAGE_libmesa-virgl is not set
 # CONFIG_PACKAGE_libmesa-zink is not set
-# CONFIG_PACKAGE_libopencl-amd is not set
-# CONFIG_PACKAGE_libopencl-nouveau is not set
 # CONFIG_PACKAGE_libpango is not set
 # CONFIG_PACKAGE_libseat is not set
 # CONFIG_PACKAGE_libva is not set
@@ -5653,6 +5655,7 @@ CONFIG_MESA_USE_LLVM=y
 # CONFIG_PACKAGE_icu-data-tools is not set
 # CONFIG_PACKAGE_icu-full-data is not set
 # CONFIG_PACKAGE_iniparser is not set
+# CONFIG_PACKAGE_ivykis is not set
 CONFIG_PACKAGE_jansson=y
 # CONFIG_PACKAGE_json-glib is not set
 # CONFIG_PACKAGE_jsoncpp is not set
@@ -6263,7 +6266,6 @@ CONFIG_PACKAGE_luci-app-firewall=y
 # CONFIG_PACKAGE_luci-app-olsr is not set
 # CONFIG_PACKAGE_luci-app-olsr-services is not set
 # CONFIG_PACKAGE_luci-app-olsr-viz is not set
-# CONFIG_PACKAGE_luci-app-olsrd2 is not set
 # CONFIG_PACKAGE_luci-app-omcproxy is not set
 # CONFIG_PACKAGE_luci-app-openlist is not set
 # CONFIG_PACKAGE_luci-app-openthread is not set
@@ -7226,15 +7228,6 @@ CONFIG_PACKAGE_mdns-repeater=y
 # end of NTRIP
 
 #
-# OLSR.org network framework
-#
-# CONFIG_PACKAGE_oonf-dlep-proxy is not set
-# CONFIG_PACKAGE_oonf-dlep-radio is not set
-# CONFIG_PACKAGE_oonf-init-scripts is not set
-# CONFIG_PACKAGE_oonf-olsrd2 is not set
-# end of OLSR.org network framework
-
-#
 # Open vSwitch
 #
 # CONFIG_PACKAGE_openvswitch is not set
@@ -7694,7 +7687,6 @@ CONFIG_PACKAGE_adguardhome=y
 # CONFIG_PACKAGE_conserver-ipmi is not set
 # CONFIG_PACKAGE_crowdsec is not set
 # CONFIG_PACKAGE_crowdsec-firewall-bouncer is not set
-# CONFIG_PACKAGE_cshark is not set
 # CONFIG_PACKAGE_darkstat is not set
 # CONFIG_PACKAGE_dhcpcd is not set
 # CONFIG_PACKAGE_dmapd is not set
@@ -7784,7 +7776,6 @@ CONFIG_PACKAGE_map=y
 # CONFIG_PACKAGE_mini_snmpd is not set
 # CONFIG_PACKAGE_mini_snmpd-16 is not set
 # CONFIG_PACKAGE_mini_snmpd-52 is not set
-# CONFIG_PACKAGE_minimalist-pcproxy is not set
 # CONFIG_PACKAGE_modemmanager is not set
 # CONFIG_PACKAGE_mosquitto-client-nossl is not set
 # CONFIG_PACKAGE_mosquitto-client-ssl is not set
@@ -7822,13 +7813,6 @@ CONFIG_PACKAGE_odhcp6c=y
 CONFIG_PACKAGE_odhcp6c_ext_cer_id=0
 # CONFIG_PACKAGE_odhcpd is not set
 CONFIG_PACKAGE_odhcpd-ipv6only=y
-
-#
-# Configuration
-#
-CONFIG_PACKAGE_odhcpd_ipv6only_ext_cer_id=0
-# end of Configuration
-
 # CONFIG_PACKAGE_ola is not set
 # CONFIG_PACKAGE_omcproxy is not set
 # CONFIG_PACKAGE_oor is not set
