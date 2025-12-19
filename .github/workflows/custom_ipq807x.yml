@@ -25,8 +25,8 @@ jobs:
           
       - name: Extract LLVM prebuilt
         run: |
-          wget https://downloads.openwrt.org/snapshots/targets/qualcommax/ipq807x/llvm-bpf-20.1.8.Linux-x86_64.tar.zst
-          tar --zstd -xvf llvm-bpf-20.1.8.Linux-x86_64.tar.zst
+          wget https://downloads.openwrt.org/snapshots/targets/qualcommax/ipq807x/llvm-bpf-21.1.6.Linux-x86_64.tar.zst
+          tar --zstd -xvf llvm-bpf-21.1.6.Linux-x86_64.tar.zst
       
       - name: Update feeds
         run: |
