@@ -274,6 +274,7 @@ CONFIG_DEFAULT_urngd=y
 CONFIG_MODULE_DEFAULT_urngd=y
 CONFIG_DEFAULT_wpad-openssl=y
 CONFIG_MODULE_DEFAULT_wpad-openssl=y
+CONFIG_MODULE_DEFAULT_zyxel-ipq807x-led-fan=y
 CONFIG_HAS_FPU=y
 CONFIG_AUDIO_SUPPORT=y
 CONFIG_GPIO_SUPPORT=y
@@ -1937,6 +1938,7 @@ CONFIG_WIFI_SCRIPTS_UCODE=y
 # CONFIG_PACKAGE_zram-swap is not set
 # CONFIG_PACKAGE_zyxel-bootconfig is not set
 CONFIG_PACKAGE_zyxel-bootconfig-ipq807x=m
+CONFIG_PACKAGE_zyxel-ipq807x-led-fan=m
 # end of Base system
 
 #
