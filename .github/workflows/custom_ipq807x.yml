@@ -89,7 +89,7 @@ jobs:
       - name: Download package sources
         run: |
           make download -j$(nproc) V=s || make download V=s
-          make download clean-dl
+          make clean
 
   build_tools:
     name: Build tools
