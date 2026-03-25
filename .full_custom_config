@@ -2872,26 +2872,7 @@ CONFIG_PACKAGE_zyxel-ipq807x-led-fan=m
 #
 # Zabbix
 #
-# CONFIG_PACKAGE_zabbix-agentd is not set
-# CONFIG_ZABBIX_GNUTLS is not set
-# CONFIG_ZABBIX_NOSSL is not set
-CONFIG_ZABBIX_OPENSSL=y
-
-#
-# Modify features for non-core variants
-#
-CONFIG_ZABBIX_CURL=y
-CONFIG_ZABBIX_LDAP=y
-CONFIG_ZABBIX_NETSNMP=y
-# end of Modify features for non-core variants
-
-# CONFIG_PACKAGE_zabbix-agentd-basic is not set
-# CONFIG_PACKAGE_zabbix-proxy is not set
-# CONFIG_ZABBIX_MYSQL is not set
-CONFIG_ZABBIX_POSTGRESQL=y
-# CONFIG_ZABBIX_SQLITE is not set
-# CONFIG_PACKAGE_zabbix-proxy-basic-sqlite is not set
-# CONFIG_PACKAGE_zabbix-server is not set
+# CONFIG_ZABBIX_ENABLE_ZABBIX is not set
 # end of Zabbix
 
 #
@@ -4796,7 +4777,6 @@ CONFIG_HAS_LUAJIT_ARCH=y
 # CONFIG_PACKAGE_python3-frozenlist is not set
 # CONFIG_PACKAGE_python3-gensio is not set
 # CONFIG_PACKAGE_python3-gevent is not set
-# CONFIG_PACKAGE_python3-gmpy2 is not set
 # CONFIG_PACKAGE_python3-gnupg is not set
 # CONFIG_PACKAGE_python3-gpiod is not set
 # CONFIG_PACKAGE_python3-greenlet is not set
@@ -4833,7 +4813,6 @@ CONFIG_HAS_LUAJIT_ARCH=y
 # CONFIG_PACKAGE_python3-markdown is not set
 # CONFIG_PACKAGE_python3-markupsafe is not set
 # CONFIG_PACKAGE_python3-maxminddb is not set
-# CONFIG_PACKAGE_python3-more-itertools is not set
 # CONFIG_PACKAGE_python3-msgpack is not set
 # CONFIG_PACKAGE_python3-multiprocessing is not set
 # CONFIG_PACKAGE_python3-ncurses is not set
@@ -4859,7 +4838,6 @@ CONFIG_HAS_LUAJIT_ARCH=y
 # CONFIG_PACKAGE_python3-pika is not set
 # CONFIG_PACKAGE_python3-pillow is not set
 # CONFIG_PACKAGE_python3-pip is not set
-# CONFIG_PACKAGE_python3-pkg-resources is not set
 # CONFIG_PACKAGE_python3-platformdirs is not set
 # CONFIG_PACKAGE_python3-pluggy is not set
 # CONFIG_PACKAGE_python3-ply is not set
@@ -6280,6 +6258,7 @@ CONFIG_PACKAGE_luci-mod-system=y
 # CONFIG_PACKAGE_luci-app-acme is not set
 # CONFIG_PACKAGE_luci-app-adblock is not set
 # CONFIG_PACKAGE_luci-app-adblock-fast is not set
+# CONFIG_PACKAGE_luci-app-adguardhome is not set
 # CONFIG_PACKAGE_luci-app-advanced-reboot is not set
 # CONFIG_PACKAGE_luci-app-antiblock is not set
 # CONFIG_PACKAGE_luci-app-apinger is not set
@@ -7130,6 +7109,7 @@ CONFIG_PACKAGE_ddns-scripts-cloudflare=y
 # CONFIG_PACKAGE_ddns-scripts-huaweicloud is not set
 # CONFIG_PACKAGE_ddns-scripts-luadns is not set
 # CONFIG_PACKAGE_ddns-scripts-namesilo is not set
+# CONFIG_PACKAGE_ddns-scripts-netcup-com is not set
 # CONFIG_PACKAGE_ddns-scripts-noip is not set
 # CONFIG_PACKAGE_ddns-scripts-ns1 is not set
 # CONFIG_PACKAGE_ddns-scripts-nsupdate is not set
@@ -7747,7 +7727,9 @@ CONFIG_PACKAGE_adguardhome=y
 # CONFIG_PACKAGE_bsbf-bonding is not set
 # CONFIG_PACKAGE_bsbf-mptcp is not set
 # CONFIG_PACKAGE_bsbf-netspeed is not set
+# CONFIG_PACKAGE_bsbf-plpmtu is not set
 # CONFIG_PACKAGE_bsbf-quectel-usbnet is not set
+# CONFIG_PACKAGE_bsbf-rate-limiting is not set
 # CONFIG_PACKAGE_bsbf-route is not set
 # CONFIG_PACKAGE_bsbf-tcp-in-udp is not set
 # CONFIG_PACKAGE_bwm-ng is not set
@@ -7897,6 +7879,7 @@ CONFIG_PACKAGE_odhcpd-ipv6only=y
 # CONFIG_PACKAGE_phytool is not set
 # CONFIG_PACKAGE_pimbd is not set
 # CONFIG_PACKAGE_pingcheck is not set
+# CONFIG_PACKAGE_plp-mtu-discovery is not set
 CONFIG_PACKAGE_ppp=y
 # CONFIG_PACKAGE_ppp-mod-passwordfd is not set
 # CONFIG_PACKAGE_ppp-mod-pppoa is not set
