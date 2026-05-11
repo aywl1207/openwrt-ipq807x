@@ -90,6 +90,17 @@ jobs:
                     git commit -m "Sync from ${{ github.repository }}:$(date +'%Y-%m-%d %H:%M:%S')"
                 fi
 
+            - name: Push public key of APK to OpenWRT Data repo
+              run: |
+                cp build_dir/target-aarch64_cortex-a53_musl/root-qualcommax/etc/apk/keys/public-key.pem dest-repo/data/nss-wifi-unified/${{ env.NOWWEB }}/
+                cd dest-repo
+                git add .
+                if git diff --cached --quiet; then
+                    echo "No changes to upload"
+                else
+                    git commit -m "Uploading the public key of APK, related to https://github.com/AgustinLorenzo/openwrt/issues/98"
+                fi
+
             - name: Uploading the rest of the packages and refreshing the index
               run: |
                 rsync -avzP bin/packages/aarch64_cortex-a53/*/*.apk bin/targets/qualcommax/ipq807x/packages/
