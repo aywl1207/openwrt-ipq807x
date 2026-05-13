@@ -1,5 +1,7 @@
 ![OpenWrt logo](include/logo.png)
 
+[![Build Custom IPQ807x NSS WiFi for devices](https://github.com/aywl1207/openwrt-ipq807x/actions/workflows/custom_ipq807x.yml/badge.svg?branch=custom_main_nss)](https://github.com/aywl1207/openwrt-ipq807x/actions/workflows/custom_ipq807x.yml)
+
 OpenWrt Project is a Linux operating system targeting embedded devices. Instead
 of trying to create a single, static firmware, OpenWrt provides a fully
 writable filesystem with package management. This frees you from the
