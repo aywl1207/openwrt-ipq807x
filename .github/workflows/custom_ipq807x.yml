@@ -35,7 +35,7 @@ jobs:
       - name: Merge upstream and custom configs
         run: |
           echo "==> 步驟 1：載入上游預設設定..."
-          cp -f full_config.txt .config
+          cp -f .full_config .config
           
           echo "==> 步驟 2：疊加自訂需求 (clean_seed.config)..."
           cat clean_seed.config >> .config
