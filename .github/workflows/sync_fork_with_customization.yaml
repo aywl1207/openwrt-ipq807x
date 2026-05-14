@@ -36,6 +36,7 @@ jobs:
           echo "Backing up necessary files..."
           cp .github/workflows/sync_fork_with_customization.yaml /tmp/sync_fork_with_customization.yaml
           cp .github/workflows/custom_ipq807x.yml /tmp/custom_ipq807x.yml
+          cp .full_custom_config /tmp/.full_custom_config
           cp clean_seed.config /tmp/clean_seed.config
           cp README.md /tmp/README.md
           git remote add upstream https://github.com/AgustinLorenzo/openwrt.git
@@ -44,6 +45,7 @@ jobs:
           echo "Restoring necessary files..."
           cp /tmp/sync_fork_with_customization.yaml .github/workflows/sync_fork_with_customization.yaml
           cp /tmp/custom_ipq807x.yml .github/workflows/custom_ipq807x.yml
+          cp /tmp/.full_custom_config .full_custom_config
           cp /tmp/clean_seed.config clean_seed.config
           cp /tmp/README.md README.md 
           git add .
