@@ -32,23 +32,30 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
      
-      - name: Import full config for IPQ807x NSS
-        run: cp -f .full_custom_config .config
+      - name: Merge upstream and custom configs
+        run: |
+          echo "==> 步驟 1：載入上游預設設定..."
+          cp -f full_config.txt .config
+          
+          echo "==> 步驟 2：疊加自訂需求 (clean_seed.config)..."
+          cat clean_seed.config >> .config
 
       - name: Check config
         run: |
+          echo "==> 步驟 3：自動計算相依性並生成最終完美 .config..."
           make defconfig
 
-      - name: Commit & push only if .full_custom_config changed
+      - name: Commit & push updated full_custom_config
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
         run: |
+          echo "==> 步驟 4：將完美融合嘅結果備份返落 .full_custom_config..."
           cp -f .config .full_custom_config
           echo "Checking .full_custom_config for changes…"
           if ! git diff --quiet --exit-code -- .full_custom_config; then
             echo "Changes detected—committing and pushing…"
             git add .full_custom_config
-            git commit -m "Update .full_custom_config"
+            git commit -m "Auto-update .full_custom_config from clean_seed.config"
             git push origin custom_main_nss
           else
             echo "No changes in .full_custom_config. Skipping commit."
