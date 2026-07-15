@@ -1,0 +1,131 @@
+name: Build Custom IPQ807x NSS WiFi for devices
+
+on:
+  workflow_dispatch:
+
+jobs:
+  prepare:
+    name: Prepare build environment
+    runs-on: self-hosted
+    steps:
+      - name: 'Cleanup build folder'
+        run: |
+          ls -la ./
+          find . -maxdepth 1 ! -name 'dl' ! -name '.' -exec rm -rf {} +
+          ls -la ./
+          
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+      
+      - name: Set up Git configuration
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          
+      - name: Extract LLVM prebuilt
+        run: |
+          wget https://downloads.openwrt.org/snapshots/targets/qualcommax/ipq807x/llvm-bpf-22.1.3.Linux-x86_64.tar.zst
+          tar --zstd -xvf llvm-bpf-22.1.3.Linux-x86_64.tar.zst
+      
+      - name: Update feeds
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+     
+      - name: Merge upstream and custom configs
+        run: |
+          echo "==> 步驟 1：載入上游預設設定..."
+          cp -f .full_config .config
+          
+          echo "==> 步驟 2：疊加自訂需求 (clean_seed.config)..."
+          cat clean_seed.config >> .config
+
+      - name: Check config
+        run: |
+          echo "==> 步驟 3：自動計算相依性並生成最終完美 .config..."
+          make defconfig
+        
+      - name: QoL fixes on default config
+        run: |
+          mkdir -p files/etc/uci-defaults
+          cat > files/etc/uci-defaults/99-qol_fixes << 'EOF'
+          uci set wireless.radio0.country='US'
+          uci set wireless.radio1.country='US'
+          uci set wireless.radio2.country='US'
+          uci set wireless.radio1.disabled=0
+          uci set wireless.radio2.disabled=0
+          uci set pbuf.opt.memory_profile=auto
+          uci set firewall.@defaults[0].flow_offloading=0
+          uci set firewall.@defaults[0].flow_offloading_hw=0
+          uci set ecm.@general[0].enable_bridge_filtering=0
+          uci set system.@system[0].cronloglevel='7'
+          uci commit wireless
+          uci commit pbuf
+          uci commit firewall
+          uci commit ecm
+          uci commit system
+          /etc/init.d/sqm stop
+          /etc/init.d/sqm disable
+          uci commit
+          EOF
+          
+      - name: Ensure permissions for custom script
+        run: chmod +x files/etc/uci-defaults/99-qol_fixes
+
+  download:
+    name: Download package sources
+    runs-on: self-hosted
+    needs: prepare
+    steps:
+      - name: Download package sources
+        run: |
+          make download -j$(nproc) V=s || make download V=s
+          make clean
+
+  build_tools:
+    name: Build tools
+    runs-on: self-hosted
+    needs: download
+    steps:
+      - name: Build tools
+        run: make tools/install -j$(nproc) V=s || make tools/install V=s
+
+  build_toolchain:
+    name: Build toolchain
+    runs-on: self-hosted
+    needs: build_tools
+    steps:
+      - name: Build toolchain
+        env:
+          KBUILD_BUILD_USER: "openwrt"
+          KBUILD_BUILD_HOST: "build-server"
+        run: make toolchain/install -j$(nproc) V=s || make toolchain/install V=s
+
+  build_images:
+    name: Build target images
+    runs-on: self-hosted
+    needs: build_toolchain
+    steps:
+      - name: Build target images
+        env:
+          KBUILD_BUILD_USER: "openwrt"
+          KBUILD_BUILD_HOST: "build-server"
+        run: make -j$(nproc) V=s || make V=s
+
+  release:
+    name: Create release
+    runs-on: self-hosted
+    needs: build_images
+    steps:
+      - name: Get the current date
+        run: echo "NOW=$(date +%F-%H%M)" >> $GITHUB_ENV
+      - name: Create a release
+        uses: ncipollo/release-action@v1
+        with:
+          name: "${{ env.NOW }} | Updated custom prebuilt images for devices (NSS-WiFi unified)"
+          commit: "custom_main_nss"
+          tag: "ipq807x-nsswifi-unified-${{ env.NOW }}"
+          generateReleaseNotes: true
+          makeLatest: true
+          artifacts: bin/targets/qualcommax/ipq807x/*
+          token: "${{ secrets.GITHUB_TOKEN }}"
