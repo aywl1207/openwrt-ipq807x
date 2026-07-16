@@ -1,30 +1,92 @@
 name: Sync Fork and Apply Customizations
 
+# Manual only — no weekly schedule.
+# Runs a real reset only when AgustinLorenzo/openwrt main_nss has new commits
+# (tracked in custom/UPSTREAM_SHA), unless force=true.
+
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 0 * * 3'  # Every Wednesday 00:00 UTC
+    inputs:
+      force:
+        description: 'Force sync even if upstream SHA is unchanged'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 permissions:
   contents: write
 
 jobs:
-  keepalive:
-    if: github.event_name == 'schedule'
+  check_upstream:
+    name: Check upstream for updates
     runs-on: ubuntu-latest
-    permissions:
-      actions: write
+    outputs:
+      need_sync: ${{ steps.check.outputs.need_sync }}
+      upstream_sha: ${{ steps.check.outputs.upstream_sha }}
+      previous_sha: ${{ steps.check.outputs.previous_sha }}
     steps:
-      - uses: liskin/gh-workflow-keepalive@v1
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT }}
+          fetch-depth: 1
+
+      - name: Compare with upstream/main_nss
+        id: check
+        run: |
+          set -euo pipefail
+          git remote remove upstream 2>/dev/null || true
+          git remote add upstream https://github.com/AgustinLorenzo/openwrt.git
+          git fetch --depth=1 upstream main_nss
+
+          UPSTREAM_SHA="$(git rev-parse upstream/main_nss)"
+          PREVIOUS_SHA=""
+          if [[ -f custom/UPSTREAM_SHA ]]; then
+            PREVIOUS_SHA="$(tr -d '[:space:]' < custom/UPSTREAM_SHA)"
+          fi
+
+          echo "upstream_sha=${UPSTREAM_SHA}" >> "$GITHUB_OUTPUT"
+          echo "previous_sha=${PREVIOUS_SHA}" >> "$GITHUB_OUTPUT"
+
+          FORCE="${{ github.event.inputs.force }}"
+          echo "Upstream:  ${UPSTREAM_SHA}"
+          echo "Recorded:  ${PREVIOUS_SHA:-<none>}"
+          echo "Force:     ${FORCE}"
+
+          if [[ "${FORCE}" == "true" ]]; then
+            echo "need_sync=true" >> "$GITHUB_OUTPUT"
+            echo "Result: FORCE sync requested"
+            exit 0
+          fi
+
+          if [[ -z "${PREVIOUS_SHA}" ]]; then
+            echo "need_sync=true" >> "$GITHUB_OUTPUT"
+            echo "Result: no UPSTREAM_SHA marker yet → will sync"
+            exit 0
+          fi
+
+          if [[ "${UPSTREAM_SHA}" == "${PREVIOUS_SHA}" ]]; then
+            echo "need_sync=false" >> "$GITHUB_OUTPUT"
+            echo "Result: already on latest upstream — skip sync"
+          else
+            echo "need_sync=true" >> "$GITHUB_OUTPUT"
+            echo "Result: upstream moved → will sync"
+            git log --oneline "${PREVIOUS_SHA}..${UPSTREAM_SHA}" 2>/dev/null | head -30 || true
+          fi
 
   sync_fork:
+    name: Sync fork (only if upstream changed)
+    needs: check_upstream
+    if: needs.check_upstream.outputs.need_sync == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.PAT }}
-          # Full history not required; we hard-reset to upstream tip
           fetch-depth: 0
 
       - name: Set up Git configuration
@@ -39,7 +101,6 @@ jobs:
           rm -rf "$BACKUP"
           mkdir -p "$BACKUP"
 
-          # Prefer PRESERVE.list from the branch; fall back to a built-in list
           LIST=custom/PRESERVE.list
           if [[ ! -f "$LIST" ]]; then
             echo "WARNING: custom/PRESERVE.list missing; using built-in fallback list"
@@ -50,7 +111,6 @@ jobs:
           clean_seed.config
           seed_qnap_301w.config
           seed_tailscale_nss.config
-          feeds.conf.default
           custom/
           scripts/apply-tailscale-optimize.sh
           scripts/build-qnap-301w.sh
@@ -61,9 +121,7 @@ jobs:
           fi
 
           echo "=== Preserving paths ==="
-          # Copy PRESERVE.list itself first (path may be under custom/)
           while IFS= read -r raw || [[ -n "$raw" ]]; do
-            # trim comments/blank
             path="$(echo "$raw" | sed 's/#.*//;s/[[:space:]]*$//;s/^[[:space:]]*//')"
             [[ -z "$path" ]] && continue
             if [[ ! -e "$path" ]]; then
@@ -80,7 +138,6 @@ jobs:
             fi
           done < "$LIST"
 
-          # Always keep a copy of the list used this run
           cp -a "$LIST" "$BACKUP/PRESERVE.list.used" 2>/dev/null || true
           echo "Backup complete:"
           find "$BACKUP" -type f | sort | head -200
@@ -93,6 +150,7 @@ jobs:
           git fetch upstream main_nss
           git reset --hard upstream/main_nss
           echo "Now at upstream: $(git rev-parse --short HEAD)"
+          echo "$(git rev-parse upstream/main_nss)" > /tmp/new_upstream_sha
 
       - name: Restore customizations from backup
         run: |
@@ -101,7 +159,6 @@ jobs:
           LIST="$BACKUP/PRESERVE.list.used"
           [[ -f "$LIST" ]] || LIST=custom/PRESERVE.list
 
-          # If list was only in backup, restore custom/ first when present
           if [[ -d "$BACKUP/custom" ]]; then
             rm -rf custom
             cp -a "$BACKUP/custom" custom
@@ -126,9 +183,11 @@ jobs:
             fi
           done < "$LIST"
 
-          # Re-append feed notes if upstream overwrote feeds.conf.default
-          # (feeds.conf.default is fully restored above when listed; append is
-          #  idempotent insurance when only custom/ is restored)
+          # Record the upstream tip we just synced to
+          mkdir -p custom
+          cp /tmp/new_upstream_sha custom/UPSTREAM_SHA
+          echo "Recorded custom/UPSTREAM_SHA=$(cat custom/UPSTREAM_SHA)"
+
           if [[ -f custom/feeds.conf.append ]]; then
             if ! grep -q 'Tailscale VPN' feeds.conf.default 2>/dev/null; then
               echo "Appending custom/feeds.conf.append → feeds.conf.default"
@@ -136,17 +195,13 @@ jobs:
             fi
           fi
 
-          # Materialize rootfs overlay (gitignored /files)
           if [[ -d custom/files ]]; then
             mkdir -p files
             rsync -a custom/files/ files/
-            find files -type f -exec chmod +x {} \; 2>/dev/null || true
-            # only mark scripts executable
             find files/etc/init.d files/etc/uci-defaults -type f -exec chmod +x {} \; 2>/dev/null || true
             echo "Materialized files/ from custom/files/"
           fi
 
-          # Ensure helper scripts executable
           chmod +x scripts/apply-tailscale-optimize.sh scripts/build-qnap-301w.sh 2>/dev/null || true
           chmod +x custom/scripts/* 2>/dev/null || true
 
@@ -170,7 +225,6 @@ jobs:
           mkdir -p package/luci-theme-argon
           curl -fsSL -L https://github.com/jerrykuku/luci-theme-argon/archive/refs/heads/master.zip -o /tmp/argon.zip
           unzip -q /tmp/argon.zip -d /tmp
-          # handle either luci-theme-argon-master or luci-theme-argon-main
           src="$(find /tmp -maxdepth 1 -type d -name 'luci-theme-argon-*' | head -1)"
           cp -a "$src"/. package/luci-theme-argon/
           rm -rf /tmp/argon.zip "$src"
@@ -179,7 +233,6 @@ jobs:
         run: |
           set -euo pipefail
           git add package/luci-theme-argon
-          # Also re-stage customizations in case Argon step dirtied tree
           git add custom clean_seed.config seed_*.config \
             scripts/apply-tailscale-optimize.sh scripts/build-qnap-301w.sh \
             patches/tailscale docs .github/workflows feeds.conf.default README.md \
@@ -194,3 +247,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
         run: git push origin HEAD:custom_main_nss
+
+  skip_notice:
+    name: Already up to date
+    needs: check_upstream
+    if: needs.check_upstream.outputs.need_sync != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: No sync needed
+        run: |
+          echo "Upstream main_nss has not changed since last sync."
+          echo "previous=${{ needs.check_upstream.outputs.previous_sha }}"
+          echo "upstream=${{ needs.check_upstream.outputs.upstream_sha }}"
+          echo "To force a full re-sync, re-run this workflow with force=true."

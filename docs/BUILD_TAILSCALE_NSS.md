@@ -276,15 +276,20 @@ tr '\0' '\n' < /proc/$(pidof tailscaled)/environ | grep GOGC
 
 ---
 
-## Weekly upstream sync protection
+## Upstream sync protection (manual, only when upstream changes)
 
-`.github/workflows/sync_fork_with_customization.yaml` runs weekly and:
+`.github/workflows/sync_fork_with_customization.yaml` is **workflow_dispatch only**
+(no weekly schedule). It:
 
-1. Backs up every path in `custom/PRESERVE.list`
-2. `git reset --hard upstream/main_nss`
-3. Restores those paths (including entire `custom/` tree)
-4. Materializes `custom/files/` → gitignored `files/`
-5. Re-clones luci-theme-argon
+1. Compares `upstream/main_nss` with `custom/UPSTREAM_SHA` — **skips if unchanged**
+2. Backs up every path in `custom/PRESERVE.list`
+3. `git reset --hard upstream/main_nss`
+4. Restores those paths (including entire `custom/` tree)
+5. Writes the new tip to `custom/UPSTREAM_SHA`
+6. Materializes `custom/files/` → gitignored `files/`
+7. Re-clones luci-theme-argon
+
+Force a re-sync from Actions with input **force=true**.
 
 **Do not put durable customizations only under `/files`** (gitignored).  
 Use `custom/files/` and add new paths to `custom/PRESERVE.list`.

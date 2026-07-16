@@ -4,6 +4,14 @@ Everything under `custom/` plus the paths listed in `PRESERVE.list` is
 restored after `git reset --hard upstream/main_nss` by
 `.github/workflows/sync_fork_with_customization.yaml`.
 
+## When sync runs
+
+- **No weekly cron** — only `workflow_dispatch` (Actions → Sync Fork → Run).
+- Sync **runs only if** `upstream/main_nss` SHA ≠ `custom/UPSTREAM_SHA`
+  (or that marker is missing). Use **force=true** to re-sync anyway.
+- After a successful sync, the workflow writes the new upstream tip to
+  `custom/UPSTREAM_SHA`.
+
 ## Layout
 
 | Path | Purpose |
