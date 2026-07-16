@@ -1,9 +1,6 @@
 
 # ---------------------------------------------------------------------------
-# Tailscale VPN (原生整合) — 由 custom/feeds.conf.append 在 weekly sync 后追加
-# 官方软件包已在 packages feed 的 net/tailscale（无需重复 src-git packages）。
-# 若要独立追踪 / 使用社区精简版，可取消下一行注释（会与 packages 同名包冲突，二选一）：
-# src-git tailscale_slim https://github.com/GuNanOvO/openwrt-tailscale.git
-# 编译体积与记忆体优化请在 ./scripts/feeds update/install 之后执行：
-#   ./scripts/apply-tailscale-optimize.sh
+# Tailscale VPN — appended by custom/feeds.conf.append after upstream sync / build
+# Official package lives in packages feed (net/tailscale); no extra src-git needed.
+# Optimize after feeds install: ./scripts/apply-tailscale-optimize.sh
 # ---------------------------------------------------------------------------

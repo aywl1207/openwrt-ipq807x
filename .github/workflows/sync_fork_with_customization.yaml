@@ -110,12 +110,9 @@ jobs:
           .github/workflows/custom_ipq807x.yml
           clean_seed.config
           seed_ipq807x_1g.config
-          seed_tailscale_nss.config
           custom/
           scripts/apply-tailscale-optimize.sh
           scripts/build-ipq807x-1g.sh
-          scripts/build-qnap-301w.sh
-          patches/tailscale/
           docs/
           README.md
           EOF
@@ -203,8 +200,12 @@ jobs:
             echo "Materialized files/ from custom/files/"
           fi
 
-          chmod +x scripts/apply-tailscale-optimize.sh scripts/build-ipq807x-1g.sh scripts/build-qnap-301w.sh 2>/dev/null || true
-          chmod +x custom/scripts/* 2>/dev/null || true
+          chmod +x scripts/apply-tailscale-optimize.sh scripts/build-ipq807x-1g.sh 2>/dev/null || true
+
+          # Fail fast if critical paths missing after restore
+          for f in clean_seed.config seed_ipq807x_1g.config scripts/apply-tailscale-optimize.sh scripts/build-ipq807x-1g.sh custom/PRESERVE.list; do
+            [[ -e "$f" ]] || { echo "ERROR: missing after restore: $f"; exit 1; }
+          done
 
           git add -A
           git status --short | head -80
@@ -227,6 +228,7 @@ jobs:
           curl -fsSL -L https://github.com/jerrykuku/luci-theme-argon/archive/refs/heads/master.zip -o /tmp/argon.zip
           unzip -q /tmp/argon.zip -d /tmp
           src="$(find /tmp -maxdepth 1 -type d -name 'luci-theme-argon-*' | head -1)"
+          [[ -n "$src" && -d "$src" ]] || { echo "ERROR: argon zip extract failed"; exit 1; }
           cp -a "$src"/. package/luci-theme-argon/
           rm -rf /tmp/argon.zip "$src"
 
@@ -234,9 +236,9 @@ jobs:
         run: |
           set -euo pipefail
           git add package/luci-theme-argon
-          git add custom clean_seed.config seed_*.config \
-            scripts/apply-tailscale-optimize.sh scripts/build-ipq807x-1g.sh scripts/build-qnap-301w.sh \
-            patches/tailscale docs .github/workflows feeds.conf.default README.md \
+          git add custom clean_seed.config seed_ipq807x_1g.config \
+            scripts/apply-tailscale-optimize.sh scripts/build-ipq807x-1g.sh \
+            docs .github/workflows README.md \
             2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No argon/customization changes to commit"

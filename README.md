@@ -45,7 +45,6 @@ Config stack:
 |------|------|
 | `clean_seed.config` | Enable/disable packages (Tailscale, AdGuard, Argon, NSS crypto, …) |
 | `seed_ipq807x_1g.config` | `IPQ_MEM_PROFILE_1024`, NSS HIGH, ath11k NSS, shared kmods |
-| `seed_tailscale_nss.config` | Optional extra Tailscale/NSS fragment |
 | `custom/files/` | Durable rootfs overlay (`/files` is gitignored) |
 | `scripts/apply-tailscale-optimize.sh` | Strip Tailscale binary + inject `GOGC=10` |
 | `custom/PRESERVE.list` | Paths restored after upstream sync |

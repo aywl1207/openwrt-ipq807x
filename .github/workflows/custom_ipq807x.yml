@@ -52,11 +52,16 @@ jobs:
 
       - name: Optimize Tailscale (strip + GOGC)
         run: |
-          chmod +x scripts/apply-tailscale-optimize.sh
+          set -euo pipefail
+          test -x scripts/apply-tailscale-optimize.sh
           ./scripts/apply-tailscale-optimize.sh
      
       - name: Merge upstream and custom configs
         run: |
+          set -euo pipefail
+          test -f .full_config
+          test -f clean_seed.config
+          test -f seed_ipq807x_1g.config
           echo "==> 步驟 1：載入上游預設設定..."
           cp -f .full_config .config
           
@@ -66,16 +71,22 @@ jobs:
 
       - name: Check config
         run: |
+          set -euo pipefail
           echo "==> 步驟 3：自動計算相依性並生成最終完美 .config..."
           make defconfig
           echo "==> 步驟 3b：確認 Tailscale / NSS / 1GB mem 關鍵符號..."
-          grep -E 'CONFIG_PACKAGE_tailscale=|CONFIG_PACKAGE_kmod-qca-nss-drv=|CONFIG_PACKAGE_kmod-qca-nss-ecm=|CONFIG_PACKAGE_kmod-qca-nss-crypto=|CONFIG_IPQ_MEM_PROFILE_1024=|CONFIG_KERNEL_IPQ_MEM_PROFILE=' .config || true
+          grep -E '^CONFIG_PACKAGE_tailscale=y$' .config
+          grep -E '^CONFIG_PACKAGE_kmod-qca-nss-drv=y$' .config
+          grep -E '^CONFIG_PACKAGE_kmod-qca-nss-ecm=y$' .config
+          grep -E '^CONFIG_PACKAGE_kmod-qca-nss-crypto=y$' .config
+          grep -E '^CONFIG_IPQ_MEM_PROFILE_1024=y$|^CONFIG_KERNEL_IPQ_MEM_PROFILE=1024$' .config
         
       - name: QoL fixes on default config
         run: |
+          set -euo pipefail
           mkdir -p files/etc/uci-defaults
-          # Keep durable overlays from custom/files; CI multi-device QoL below
-          # (generic NSS/Tailscale QoL also in 99-qol_nss_tailscale)
+          # Multi-device CI defaults (country/radios/SQM). NSS/Tailscale QoL also
+          # comes from custom/files → 99-qol_nss_tailscale when materialized.
           cat > files/etc/uci-defaults/99-qol_fixes << 'EOF'
           uci set wireless.radio0.country='US'
           uci set wireless.radio1.country='US'
@@ -92,8 +103,8 @@ jobs:
           uci commit firewall
           uci commit ecm
           uci commit system
-          /etc/init.d/sqm stop
-          /etc/init.d/sqm disable
+          /etc/init.d/sqm stop 2>/dev/null || true
+          /etc/init.d/sqm disable 2>/dev/null || true
           [ -x /etc/init.d/tailscale ] && /etc/init.d/tailscale enable
           uci commit
           EOF

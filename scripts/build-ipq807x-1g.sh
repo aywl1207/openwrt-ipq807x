@@ -58,10 +58,6 @@ if [[ -d custom/files ]]; then
 else
   echo "WARNING: custom/files missing — rootfs overlay may be incomplete"
 fi
-if [[ -d custom/scripts ]]; then
-  install -m0755 custom/scripts/apply-tailscale-optimize.sh scripts/ 2>/dev/null || true
-  install -m0755 custom/scripts/build-ipq807x-1g.sh scripts/ 2>/dev/null || true
-fi
 
 # --- 1) Feeds ----------------------------------------------------------------
 echo "==> [1/6] feeds update / install"
@@ -89,9 +85,6 @@ echo "==> [3/6] merge .full_config + clean_seed + seed_ipq807x_1g"
 cp -f .full_config .config
 cat clean_seed.config >> .config
 cat seed_ipq807x_1g.config >> .config
-if [[ -f seed_tailscale_nss.config ]]; then
-  cat seed_tailscale_nss.config >> .config
-fi
 
 # Optional: pin one device (faster local builds / single firmware)
 if [[ -n "${DEVICE}" ]]; then
