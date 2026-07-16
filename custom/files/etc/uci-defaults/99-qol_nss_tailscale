@@ -1,6 +1,6 @@
 #!/bin/sh
-# First-boot QoL for IPQ807x NSS + Tailscale builds.
-# Keep software flow offload OFF so ECM/NSS own acceleration.
+# First-boot QoL for IPQ807x NSS + Tailscale builds (all 1GB-class boards).
+# Keep OpenWrt software/hardware flow offload OFF so ECM/NSS own acceleration.
 
 [ -n "$(uci -q get firewall.@defaults[0])" ] && {
 	uci -q set firewall.@defaults[0].flow_offloading=0
@@ -18,7 +18,7 @@
 	uci -q commit pbuf
 }
 
-# Ensure tailscale starts after network when package is present
+# Tailscale present → enable on boot (user still runs: tailscale up)
 [ -x /etc/init.d/tailscale ] && /etc/init.d/tailscale enable
 
 exit 0

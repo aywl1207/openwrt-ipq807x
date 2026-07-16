@@ -1,4 +1,4 @@
-# Fork customizations (survive weekly upstream sync)
+# Fork customizations (survive upstream sync)
 
 Everything under `custom/` plus the paths listed in `PRESERVE.list` is
 restored after `git reset --hard upstream/main_nss` by
@@ -20,8 +20,8 @@ restored after `git reset --hard upstream/main_nss` by
 | `custom/feeds.conf.append` | Appended to upstream `feeds.conf.default` after sync |
 | `custom/patches/tailscale/` | Reference patches for Tailscale strip/GOGC |
 | `custom/scripts/` | Mirror of build helpers (also live under `scripts/`) |
-| `clean_seed.config` | Package seed overlay (Tailscale, AdGuard, NSS crypto, …) |
-| `seed_qnap_301w.config` | QNAP QHora-301W single-device seed |
+| `clean_seed.config` | Package seed: Tailscale, AdGuard, Cloudflare, Argon, NSS… |
+| `seed_ipq807x_1g.config` | 1GB RAM memory profile + shared NSS knobs (any IPQ807x board) |
 | `seed_tailscale_nss.config` | Optional Tailscale + NSS fragment |
 
 ## Local / CI build order
@@ -34,15 +34,18 @@ rsync -a custom/files/ files/
 ./scripts/feeds update -a && ./scripts/feeds install -a
 ./scripts/apply-tailscale-optimize.sh
 
-# 3) config
+# 3) config (multi-device 1GB class)
 cp -f .full_config .config
 cat clean_seed.config >> .config
-# QNAP 301W only:
-cat seed_qnap_301w.config >> .config
+cat seed_ipq807x_1g.config >> .config
 make defconfig
 
-# or one-shot:
-./scripts/build-qnap-301w.sh
+# one-shot multi-device:
+./scripts/build-ipq807x-1g.sh
+
+# optional single device:
+DEVICE=dynalink_dl-wrx36 ./scripts/build-ipq807x-1g.sh
+DEVICE=qnap_301w ./scripts/build-ipq807x-1g.sh
 ```
 
 ## Adding a new preserved file

@@ -2,6 +2,64 @@
 
 [![Build Custom IPQ807x NSS WiFi for devices](https://github.com/aywl1207/openwrt-ipq807x/actions/workflows/custom_ipq807x.yml/badge.svg?branch=custom_main_nss)](https://github.com/aywl1207/openwrt-ipq807x/actions/workflows/custom_ipq807x.yml)
 
+# openwrt-ipq807x (`custom_main_nss`)
+
+Fork of [AgustinLorenzo/openwrt](https://github.com/AgustinLorenzo/openwrt) **NSS Wi‑Fi** tree, tuned for **Qualcomm IPQ807x routers with ~1 GB RAM**.
+
+Not locked to a single board: multi-profile images follow upstream device list; memory profile is forced to **1024 MB**. Optional single-device builds via `DEVICE=...`.
+
+## Included tools & packages
+
+| Category | Components |
+|----------|------------|
+| **VPN / mesh** | [Tailscale](https://tailscale.com/) (`tailscale`) — built with `-s -w` strip + `GOGC=10` RAM tuning |
+| **DNS / filter** | [AdGuard Home](https://adguard.com/adguard-home/overview.html) (`adguardhome`) |
+| **Tunnel** | [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/) (`cloudflared`, `luci-app-cloudflared`) |
+| **NSS offload** | `kmod-qca-nss-drv`, `kmod-qca-nss-ecm`, `kmod-qca-nss-crypto`, `nss-eip-firmware`, bridge/vlan/pppoe/qdisc managers; NSS FW **12.5** |
+| **SQM / QoS** | `sqm-scripts`, `sqm-scripts-nss`, `luci-app-sqm`, `kmod-sched-cake` |
+| **UI** | LuCI + **Argon** theme (`luci-theme-argon`), Traditional Chinese (`zh_Hant` / `*-zh-tw` i18n packs) |
+| **Network utils** | `ddns-scripts-cloudflare`, `mdns-repeater`, `udp-broadcast-relay-redux`, `drill`, `ipset`, nft/iptables helpers |
+| **Memory** | `zram-swap` + `kmod-zram` (helps with Tailscale / AdGuard on 1 GB boards) |
+| **Entropy / misc** | `haveged`, `shadow-all`, `iwinfo` |
+
+First-boot QoL (via `custom/files` → rootfs): disable OpenWrt SW/HW **flow offloading** (ECM/NSS owns acceleration), `pbuf` memory profile `auto`, enable Tailscale service.
+
+## Quick build (1 GB IPQ807x)
+
+```bash
+# Multi-device (uses .full_config device set) + 1GB seed + clean_seed packages
+./scripts/build-ipq807x-1g.sh
+
+# Optional: one board only
+DEVICE=dynalink_dl-wrx36 ./scripts/build-ipq807x-1g.sh
+DEVICE=qnap_301w ./scripts/build-ipq807x-1g.sh
+```
+
+Config stack:
+
+```text
+.full_config  →  clean_seed.config  →  seed_ipq807x_1g.config  →  make defconfig
+```
+
+| File | Role |
+|------|------|
+| `clean_seed.config` | Enable/disable packages (Tailscale, AdGuard, Argon, NSS crypto, …) |
+| `seed_ipq807x_1g.config` | `IPQ_MEM_PROFILE_1024`, NSS HIGH, ath11k NSS, shared kmods |
+| `seed_tailscale_nss.config` | Optional extra Tailscale/NSS fragment |
+| `custom/files/` | Durable rootfs overlay (`/files` is gitignored) |
+| `scripts/apply-tailscale-optimize.sh` | Strip Tailscale binary + inject `GOGC=10` |
+| `custom/PRESERVE.list` | Paths restored after upstream sync |
+
+More detail: [`docs/BUILD_TAILSCALE_NSS.md`](docs/BUILD_TAILSCALE_NSS.md), [`custom/README.md`](custom/README.md).
+
+## Upstream sync
+
+Manual only (Actions → **Sync Fork**). Runs a hard reset **only when** `upstream/main_nss` differs from `custom/UPSTREAM_SHA`. Use `force=true` to re-sync anyway. No weekly cron.
+
+---
+
+## Upstream OpenWrt project
+
 OpenWrt Project is a Linux operating system targeting embedded devices. Instead
 of trying to create a single, static firmware, OpenWrt provides a fully
 writable filesystem with package management. This frees you from the

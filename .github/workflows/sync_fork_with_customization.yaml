@@ -109,10 +109,11 @@ jobs:
           .github/workflows/sync_fork_with_customization.yaml
           .github/workflows/custom_ipq807x.yml
           clean_seed.config
-          seed_qnap_301w.config
+          seed_ipq807x_1g.config
           seed_tailscale_nss.config
           custom/
           scripts/apply-tailscale-optimize.sh
+          scripts/build-ipq807x-1g.sh
           scripts/build-qnap-301w.sh
           patches/tailscale/
           docs/
@@ -202,7 +203,7 @@ jobs:
             echo "Materialized files/ from custom/files/"
           fi
 
-          chmod +x scripts/apply-tailscale-optimize.sh scripts/build-qnap-301w.sh 2>/dev/null || true
+          chmod +x scripts/apply-tailscale-optimize.sh scripts/build-ipq807x-1g.sh scripts/build-qnap-301w.sh 2>/dev/null || true
           chmod +x custom/scripts/* 2>/dev/null || true
 
           git add -A
@@ -234,7 +235,7 @@ jobs:
           set -euo pipefail
           git add package/luci-theme-argon
           git add custom clean_seed.config seed_*.config \
-            scripts/apply-tailscale-optimize.sh scripts/build-qnap-301w.sh \
+            scripts/apply-tailscale-optimize.sh scripts/build-ipq807x-1g.sh scripts/build-qnap-301w.sh \
             patches/tailscale docs .github/workflows feeds.conf.default README.md \
             2>/dev/null || true
           if git diff --cached --quiet; then

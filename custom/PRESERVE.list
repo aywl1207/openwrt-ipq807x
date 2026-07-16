@@ -1,4 +1,4 @@
-# Paths restored after weekly upstream reset (relative to repo root).
+# Paths restored after upstream sync (relative to repo root).
 # Lines starting with # are ignored. Directories are copied recursively.
 
 # Workflows (must survive force-push rebase)
@@ -7,7 +7,7 @@
 
 # Seed customizations (full-file restore — these are fork-owned)
 clean_seed.config
-seed_qnap_301w.config
+seed_ipq807x_1g.config
 seed_tailscale_nss.config
 
 # Entire custom tree (files overlay, patches, feeds.conf.append, scripts mirrors)
@@ -17,6 +17,7 @@ custom/
 
 # Build helpers + reference patches (also mirrored under custom/)
 scripts/apply-tailscale-optimize.sh
+scripts/build-ipq807x-1g.sh
 scripts/build-qnap-301w.sh
 patches/tailscale/
 docs/
