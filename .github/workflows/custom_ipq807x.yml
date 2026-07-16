@@ -27,10 +27,33 @@ jobs:
           wget https://downloads.openwrt.org/snapshots/targets/qualcommax/ipq807x/llvm-bpf-22.1.3.Linux-x86_64.tar.zst
           tar --zstd -xvf llvm-bpf-22.1.3.Linux-x86_64.tar.zst
       
+      - name: Materialize custom overlay (custom/files → files/)
+        run: |
+          set -euo pipefail
+          # /files is gitignored; durable overlay lives under custom/files/
+          if [[ -d custom/files ]]; then
+            mkdir -p files
+            rsync -a custom/files/ files/
+            find files/etc/init.d files/etc/uci-defaults -type f -exec chmod +x {} \; 2>/dev/null || true
+            echo "Materialized files/ from custom/files/"
+            find files -type f | sort
+          else
+            echo "WARNING: custom/files missing"
+          fi
+          if [[ -f custom/feeds.conf.append ]] && ! grep -q 'Tailscale VPN' feeds.conf.default 2>/dev/null; then
+            cat custom/feeds.conf.append >> feeds.conf.default
+          fi
+
       - name: Update feeds
         run: |
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+          ./scripts/feeds install tailscale || true
+
+      - name: Optimize Tailscale (strip + GOGC)
+        run: |
+          chmod +x scripts/apply-tailscale-optimize.sh
+          ./scripts/apply-tailscale-optimize.sh
      
       - name: Merge upstream and custom configs
         run: |
@@ -39,15 +62,21 @@ jobs:
           
           echo "==> 步驟 2：疊加自訂需求 (clean_seed.config)..."
           cat clean_seed.config >> .config
+          # Optional multi-device CI stays on clean_seed only.
+          # For QNAP-301W-only images, also: cat seed_qnap_301w.config >> .config
 
       - name: Check config
         run: |
           echo "==> 步驟 3：自動計算相依性並生成最終完美 .config..."
           make defconfig
+          echo "==> 步驟 3b：確認 Tailscale / NSS 關鍵符號..."
+          grep -E 'CONFIG_PACKAGE_tailscale=|CONFIG_PACKAGE_kmod-qca-nss-drv=|CONFIG_PACKAGE_kmod-qca-nss-ecm=|CONFIG_PACKAGE_kmod-qca-nss-crypto=' .config || true
         
       - name: QoL fixes on default config
         run: |
           mkdir -p files/etc/uci-defaults
+          # Keep durable overlays from custom/files; only add CI multi-device QoL
+          # if not already provided by 99-qol_nss_tailscale / 98-qnap-301w
           cat > files/etc/uci-defaults/99-qol_fixes << 'EOF'
           uci set wireless.radio0.country='US'
           uci set wireless.radio1.country='US'
@@ -66,11 +95,17 @@ jobs:
           uci commit system
           /etc/init.d/sqm stop
           /etc/init.d/sqm disable
+          [ -x /etc/init.d/tailscale ] && /etc/init.d/tailscale enable
           uci commit
           EOF
           
       - name: Ensure permissions for custom script
-        run: chmod +x files/etc/uci-defaults/99-qol_fixes
+        run: |
+          chmod +x files/etc/uci-defaults/99-qol_fixes
+          chmod +x files/etc/uci-defaults/99-qol_nss_tailscale 2>/dev/null || true
+          chmod +x files/etc/uci-defaults/98-qnap-301w 2>/dev/null || true
+          chmod +x files/etc/init.d/tailscale 2>/dev/null || true
+
 
   download:
     name: Download package sources

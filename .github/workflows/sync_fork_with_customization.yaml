@@ -3,7 +3,7 @@ name: Sync Fork and Apply Customizations
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 3'  # Runs every Wednesday at midnight UTC
+    - cron: '0 0 * * 3'  # Every Wednesday 00:00 UTC
 
 permissions:
   contents: write
@@ -16,59 +16,181 @@ jobs:
       actions: write
     steps:
       - uses: liskin/gh-workflow-keepalive@v1
-      
+
   sync_fork:
     runs-on: ubuntu-latest
     steps:
-    
       - name: Check out code
-        uses: actions/checkout@v2.5.0 # Pinned to a specific version for stability
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.PAT }}
+          # Full history not required; we hard-reset to upstream tip
+          fetch-depth: 0
 
       - name: Set up Git configuration
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          
-      - name: Backup Necessary Files and Reset tree
+
+      - name: Backup customizations → /tmp/openwrt-custom-backup
         run: |
-          echo "Backing up necessary files..."
-          cp .github/workflows/sync_fork_with_customization.yaml /tmp/sync_fork_with_customization.yaml
-          cp .github/workflows/custom_ipq807x.yml /tmp/custom_ipq807x.yml
-          cp clean_seed.config /tmp/clean_seed.config
-          cp README.md /tmp/README.md
+          set -euo pipefail
+          BACKUP=/tmp/openwrt-custom-backup
+          rm -rf "$BACKUP"
+          mkdir -p "$BACKUP"
+
+          # Prefer PRESERVE.list from the branch; fall back to a built-in list
+          LIST=custom/PRESERVE.list
+          if [[ ! -f "$LIST" ]]; then
+            echo "WARNING: custom/PRESERVE.list missing; using built-in fallback list"
+            LIST=/tmp/preserve-fallback.list
+            cat > "$LIST" <<'EOF'
+          .github/workflows/sync_fork_with_customization.yaml
+          .github/workflows/custom_ipq807x.yml
+          clean_seed.config
+          seed_qnap_301w.config
+          seed_tailscale_nss.config
+          feeds.conf.default
+          custom/
+          scripts/apply-tailscale-optimize.sh
+          scripts/build-qnap-301w.sh
+          patches/tailscale/
+          docs/
+          README.md
+          EOF
+          fi
+
+          echo "=== Preserving paths ==="
+          # Copy PRESERVE.list itself first (path may be under custom/)
+          while IFS= read -r raw || [[ -n "$raw" ]]; do
+            # trim comments/blank
+            path="$(echo "$raw" | sed 's/#.*//;s/[[:space:]]*$//;s/^[[:space:]]*//')"
+            [[ -z "$path" ]] && continue
+            if [[ ! -e "$path" ]]; then
+              echo "  skip (missing): $path"
+              continue
+            fi
+            echo "  backup: $path"
+            mkdir -p "$BACKUP/$(dirname "$path")"
+            if [[ -d "$path" ]]; then
+              rm -rf "$BACKUP/$path"
+              cp -a "$path" "$BACKUP/$path"
+            else
+              cp -a "$path" "$BACKUP/$path"
+            fi
+          done < "$LIST"
+
+          # Always keep a copy of the list used this run
+          cp -a "$LIST" "$BACKUP/PRESERVE.list.used" 2>/dev/null || true
+          echo "Backup complete:"
+          find "$BACKUP" -type f | sort | head -200
+
+      - name: Reset to upstream main_nss
+        run: |
+          set -euo pipefail
+          git remote remove upstream 2>/dev/null || true
           git remote add upstream https://github.com/AgustinLorenzo/openwrt.git
-          git fetch upstream
+          git fetch upstream main_nss
           git reset --hard upstream/main_nss
-          echo "Restoring necessary files..."
-          cp /tmp/sync_fork_with_customization.yaml .github/workflows/sync_fork_with_customization.yaml
-          cp /tmp/custom_ipq807x.yml .github/workflows/custom_ipq807x.yml
-          cp /tmp/clean_seed.config clean_seed.config
-          cp /tmp/README.md README.md 
-          git add .
-          
-      - name: Push rebased changes excluding workflow file
+          echo "Now at upstream: $(git rev-parse --short HEAD)"
+
+      - name: Restore customizations from backup
+        run: |
+          set -euo pipefail
+          BACKUP=/tmp/openwrt-custom-backup
+          LIST="$BACKUP/PRESERVE.list.used"
+          [[ -f "$LIST" ]] || LIST=custom/PRESERVE.list
+
+          # If list was only in backup, restore custom/ first when present
+          if [[ -d "$BACKUP/custom" ]]; then
+            rm -rf custom
+            cp -a "$BACKUP/custom" custom
+            echo "Restored custom/ tree"
+          fi
+
+          while IFS= read -r raw || [[ -n "$raw" ]]; do
+            path="$(echo "$raw" | sed 's/#.*//;s/[[:space:]]*$//;s/^[[:space:]]*//')"
+            [[ -z "$path" ]] && continue
+            [[ "$path" == "custom/" || "$path" == "custom" ]] && continue
+            if [[ ! -e "$BACKUP/$path" ]]; then
+              echo "  skip restore (not in backup): $path"
+              continue
+            fi
+            echo "  restore: $path"
+            mkdir -p "$(dirname "$path")"
+            if [[ -d "$BACKUP/$path" ]]; then
+              rm -rf "$path"
+              cp -a "$BACKUP/$path" "$path"
+            else
+              cp -a "$BACKUP/$path" "$path"
+            fi
+          done < "$LIST"
+
+          # Re-append feed notes if upstream overwrote feeds.conf.default
+          # (feeds.conf.default is fully restored above when listed; append is
+          #  idempotent insurance when only custom/ is restored)
+          if [[ -f custom/feeds.conf.append ]]; then
+            if ! grep -q 'Tailscale VPN' feeds.conf.default 2>/dev/null; then
+              echo "Appending custom/feeds.conf.append → feeds.conf.default"
+              cat custom/feeds.conf.append >> feeds.conf.default
+            fi
+          fi
+
+          # Materialize rootfs overlay (gitignored /files)
+          if [[ -d custom/files ]]; then
+            mkdir -p files
+            rsync -a custom/files/ files/
+            find files -type f -exec chmod +x {} \; 2>/dev/null || true
+            # only mark scripts executable
+            find files/etc/init.d files/etc/uci-defaults -type f -exec chmod +x {} \; 2>/dev/null || true
+            echo "Materialized files/ from custom/files/"
+          fi
+
+          # Ensure helper scripts executable
+          chmod +x scripts/apply-tailscale-optimize.sh scripts/build-qnap-301w.sh 2>/dev/null || true
+          chmod +x custom/scripts/* 2>/dev/null || true
+
+          git add -A
+          git status --short | head -80
+
+      - name: Push rebased tree (force)
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
-        run: git push origin custom_main_nss --force
+        run: |
+          git commit -m "chore(sync): reset to upstream/main_nss and restore fork customizations" || {
+            echo "Nothing to commit after restore (tree identical?)"
+          }
+          git push origin HEAD:custom_main_nss --force
 
       - name: Clone Argon theme
         run: |
+          set -euo pipefail
           echo "Cloning Argon theme..."
+          rm -rf package/luci-theme-argon
           mkdir -p package/luci-theme-argon
-          curl -L https://github.com/jerrykuku/luci-theme-argon/archive/refs/heads/master.zip -o master.zip
-          unzip master.zip -d package
-          mv package/luci-theme-argon-master/* package/luci-theme-argon/
-          rm -rf package/luci-theme-argon-master master.zip
-          
-      - name: Commit customization changes
+          curl -fsSL -L https://github.com/jerrykuku/luci-theme-argon/archive/refs/heads/master.zip -o /tmp/argon.zip
+          unzip -q /tmp/argon.zip -d /tmp
+          # handle either luci-theme-argon-master or luci-theme-argon-main
+          src="$(find /tmp -maxdepth 1 -type d -name 'luci-theme-argon-*' | head -1)"
+          cp -a "$src"/. package/luci-theme-argon/
+          rm -rf /tmp/argon.zip "$src"
+
+      - name: Commit Argon + finalize
         run: |
-          echo "Committing customization changes..."
-          git add .
-          git commit -m "Added .full_custom_config, custom_ipq807x.yml, sync_fork_with_customization.yaml and luci-theme-argon packages. Also updated README.md"
-          
-      - name: Push customization changes
+          set -euo pipefail
+          git add package/luci-theme-argon
+          # Also re-stage customizations in case Argon step dirtied tree
+          git add custom clean_seed.config seed_*.config \
+            scripts/apply-tailscale-optimize.sh scripts/build-qnap-301w.sh \
+            patches/tailscale docs .github/workflows feeds.conf.default README.md \
+            2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No argon/customization changes to commit"
+          else
+            git commit -m "chore(sync): re-apply luci-theme-argon and ensure customizations present"
+          fi
+
+      - name: Push customization commit
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
-        run: git push origin custom_main_nss
+        run: git push origin HEAD:custom_main_nss

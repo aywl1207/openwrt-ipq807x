@@ -1,0 +1,25 @@
+# Paths restored after weekly upstream reset (relative to repo root).
+# Lines starting with # are ignored. Directories are copied recursively.
+
+# Workflows (must survive force-push rebase)
+.github/workflows/sync_fork_with_customization.yaml
+.github/workflows/custom_ipq807x.yml
+
+# Seed customizations (full-file restore — these are fork-owned)
+clean_seed.config
+seed_qnap_301w.config
+seed_tailscale_nss.config
+
+# Entire custom tree (files overlay, patches, feeds.conf.append, scripts mirrors)
+# NOTE: do NOT full-restore feeds.conf.default — keep upstream feed URLs,
+# then re-append custom/feeds.conf.append after reset (handled in workflow).
+custom/
+
+# Build helpers + reference patches (also mirrored under custom/)
+scripts/apply-tailscale-optimize.sh
+scripts/build-qnap-301w.sh
+patches/tailscale/
+docs/
+
+# Project notes on the fork badge / usage
+README.md
