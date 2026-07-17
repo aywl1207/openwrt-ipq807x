@@ -1,0 +1,39 @@
+#!/bin/sh
+# Ensure LAN DHCPv4 stays enabled after first boot (OpenWrt router default).
+#
+# 15_odhcpd sets dhcp.lan.dhcpv4 from board.json lan.protocol. If that JSON
+# is incomplete at run time, it leaves dhcpv4='disabled' and clients get no
+# address. When network.lan is static, keep the normal DHCPv4 server.
+#
+# This script only fixes the broken "disabled" case — it does not rewrite
+# start/limit/leasetime or touch WAN / other interfaces.
+
+[ -f /etc/config/dhcp ] || exit 0
+
+lan_proto="$(uci -q get network.lan.proto)"
+[ "$lan_proto" = "static" ] || exit 0
+
+# Create dhcp.lan only if completely missing
+if ! uci -q get dhcp.lan >/dev/null; then
+	uci -q batch <<-EOF
+		set dhcp.lan=dhcp
+		set dhcp.lan.interface='lan'
+		set dhcp.lan.start='100'
+		set dhcp.lan.limit='150'
+		set dhcp.lan.leasetime='12h'
+	EOF
+fi
+
+# Force DHCPv4 server when still disabled / empty
+case "$(uci -q get dhcp.lan.dhcpv4)" in
+	server) ;;
+	*)
+		uci -q set dhcp.lan.dhcpv4='server'
+		;;
+esac
+
+# Never "ignore" the LAN DHCP section
+uci -q delete dhcp.lan.ignore 2>/dev/null || true
+
+uci -q commit dhcp
+exit 0

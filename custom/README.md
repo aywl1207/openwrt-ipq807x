@@ -26,3 +26,9 @@ DEVICE=dynalink_dl-wrx36 ./scripts/build-ipq807x-1g.sh   # optional single board
 
 Manual **workflow_dispatch** only. Syncs when `upstream/main_nss` ≠ `custom/UPSTREAM_SHA`.
 Force with `force=true`.
+
+## First-boot network note
+
+`16_ensure_lan_dhcpv4` only re-enables LAN DHCPv4 (`server`) when
+`network.lan.proto=static` and `dhcp.lan.dhcpv4` was left `disabled` by
+`15_odhcpd`. WAN and other interfaces are not modified.

@@ -22,7 +22,7 @@ Not locked to a single board: multi-profile images follow upstream device list; 
 | **Memory** | `zram-swap` + `kmod-zram` (helps with Tailscale / AdGuard on 1 GB boards) |
 | **Entropy / misc** | `haveged`, `shadow-all`, `iwinfo` |
 
-First-boot QoL (via `custom/files` → rootfs): disable OpenWrt SW/HW **flow offloading** (ECM/NSS owns acceleration), `pbuf` memory profile `auto`, enable Tailscale service.
+First-boot QoL (via `custom/files` → rootfs): disable OpenWrt SW/HW **flow offloading** (ECM/NSS owns acceleration), `pbuf` memory profile `auto`, enable Tailscale service. LAN **DHCPv4** is kept as `server` when LAN is static (`16_ensure_lan_dhcpv4`; no other DHCP rewrites).
 
 ## Quick build (1 GB IPQ807x)
 

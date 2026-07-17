@@ -112,8 +112,11 @@ jobs:
       - name: Ensure permissions for custom script
         run: |
           chmod +x files/etc/uci-defaults/99-qol_fixes
+          chmod +x files/etc/uci-defaults/16_ensure_lan_dhcpv4 2>/dev/null || true
           chmod +x files/etc/uci-defaults/99-qol_nss_tailscale 2>/dev/null || true
           chmod +x files/etc/init.d/tailscale 2>/dev/null || true
+          # Never let CI QoL touch DHCP — DHCPv4 defaults stay in 16_ensure_lan_dhcpv4 only
+          ! grep -qE 'dhcp\.|network\.lan' files/etc/uci-defaults/99-qol_fixes
 
 
   download:
