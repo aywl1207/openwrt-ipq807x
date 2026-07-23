@@ -1,0 +1,124 @@
+name: Build IPQ60xx NSS WiFi
+
+on: workflow_dispatch
+
+jobs:
+    build:
+        name: Prepare and build IPQ60xx NSS generic images
+        runs-on: self-hosted
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7.0.1
+
+            - name: Extract LLVM prebuilt
+              run: |
+                wget https://downloads.openwrt.org/snapshots/targets/qualcommax/ipq60xx/llvm-bpf-22.1.3.Linux-x86_64.tar.zst
+                tar --zstd -xvf llvm-bpf-22.1.3.Linux-x86_64.tar.zst
+
+            - name: Update and install feeds
+              run: |
+                ./scripts/feeds update -a
+                ./scripts/feeds install -a
+
+            - name: Import full config for IPQ60xx NSS Generic
+              run: |
+                mv .full_config_ipq60xx .config
+
+            - name: QoL fixes on default config
+              run: |
+                mkdir -p files/etc/uci-defaults
+                cat > files/etc/uci-defaults/zzz_99-qol_fixes << EOF
+                uci set wireless.radio0.country='US'
+                uci set wireless.radio1.country='US'
+                uci set wireless.radio2.country='US'
+                uci set wireless.radio0.disabled=0
+                uci set wireless.radio1.disabled=0
+                uci set wireless.radio2.disabled=0
+                uci set pbuf.opt.memory_profile=auto
+                uci set firewall.@defaults[0].flow_offloading=0
+                uci set ecm.@general[0].enable_bridge_filtering=0
+                uci commit wireless
+                uci commit pbuf
+                uci commit firewall
+                uci commit ecm
+                EOF
+
+            - name: Download package sources
+              run: make download V=s
+
+            - name: Build tools
+              run: |
+                make tools/install -j$(nproc) V=s || \
+                make tools/install V=s
+
+            - name: Build toolchain
+              run: |
+                make toolchain/install -j$(nproc) V=s || \
+                make toolchain/install V=s
+
+            - name: Build target images
+              run: |
+                make -j$(nproc) V=s || \
+                make V=s
+
+    release:
+        name: Make a release
+        runs-on: self-hosted
+        needs: build
+
+        steps:
+            - name: Get the current date
+              run: |
+                echo "NOW=$(date +%F-%H%M)" >> $GITHUB_ENV
+                echo "NOWWEB=$(date +%Y%m%d)" >> $GITHUB_ENV
+
+            - name: Create a release
+              uses: ncipollo/release-action@v1.21.0
+              with:
+                name: "Updated prebuilt images (IPQ60XX - NSS-WiFi unified) ${{ env.NOW }}"
+                commit: "main_nss"
+                tag: "ipq60xx-nsswifi-unified-${{ env.NOW }}"
+                generateReleaseNotes: true
+                makeLatest: false
+                artifacts: bin/targets/qualcommax/ipq60xx/*
+                token: "${{ secrets.GITHUB_TOKEN }}"
+
+            - name: Clone OpenWRT Data Repo and push new data
+              run: |
+                git clone https://x-access-token:${{ secrets.DESTINATION_TOKEN }}@github.com/AgustinLorenzo/openwrtdata.git dest-repo
+                mkdir -p dest-repo/data/ipq60xx/nss-wifi-unified/${{ env.NOWWEB }}
+                rsync -avzP --delete bin/targets/qualcommax/ipq60xx/* dest-repo/data/ipq60xx/nss-wifi-unified/${{ env.NOWWEB }}/
+                cd dest-repo
+                git add .
+                if git diff --cached --quiet; then
+                    echo "No changes to upload"
+                else
+                    git commit -m "IPQ60XX: Sync from ${{ github.repository }}:$(date +'%Y-%m-%d %H:%M:%S')"
+                fi
+
+            - name: Push public key of APK to OpenWRT Data repo
+              run: |
+                cp build_dir/target-aarch64_cortex-a53_musl/root-qualcommax/etc/apk/keys/public-key.pem dest-repo/data/ipq60xx/nss-wifi-unified/${{ env.NOWWEB }}/
+                cd dest-repo
+                git add .
+                if git diff --cached --quiet; then
+                    echo "No changes to upload"
+                else
+                    git commit -m "IPQ60XX: Uploading the public key of APK, related to https://github.com/AgustinLorenzo/openwrt/issues/98"
+                fi
+
+            - name: Uploading the rest of the packages and refreshing the index
+              run: |
+                rsync -avzP bin/packages/aarch64_cortex-a53/*/*.apk bin/targets/qualcommax/ipq60xx/packages/
+                make package/index
+                rsync -avzP bin/packages/aarch64_cortex-a53/*/*.apk dest-repo/data/ipq60xx/nss-wifi-unified/${{ env.NOWWEB }}/packages/
+                rsync -avzP bin/targets/qualcommax/ipq60xx/packages/packages.adb bin/targets/qualcommax/ipq60xx/packages/index.json dest-repo/data/ipq60xx/nss-wifi-unified/${{ env.NOWWEB }}/packages/
+                cd dest-repo
+                git add .
+                if git diff --cached --quiet; then
+                    echo "No changes to upload"
+                else
+                    git commit -m "IPQ60XX: Uploading the rest of the packages and refreshing the index"
+                    git push origin main
+                fi
