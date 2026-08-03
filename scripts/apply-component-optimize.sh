@@ -136,6 +136,8 @@ verify_overlays() {
   check_grep files/etc/config/adguardhome "option gc '20'"
   check_grep files/etc/config/adguardhome "option memlimit "
   check_grep files/etc/uci-defaults/98-component-optimize 'zram_size_mb'
+  # AdGuard Home is primary DNS — must be enabled on first boot
+  check_grep files/etc/uci-defaults/98-component-optimize 'adguardhome enable'
   [[ "${fail}" -eq 0 ]] || { echo "ERROR: overlay verification failed" >&2; exit 1; }
 }
 

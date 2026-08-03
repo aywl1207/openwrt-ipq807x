@@ -6,7 +6,7 @@ All packages listed in the README remain installed; tuning is size/RAM/runtime o
 | Component | Flash / binary | RAM / runtime | Notes |
 |-----------|----------------|---------------|--------|
 | **tailscale** | `GO_PKG_LDFLAGS -s -w` | `GOGC=10`, `GOMEMLIMIT=128MiB` | Overlay init; service enabled on first boot |
-| **adguardhome** | `GO_PKG_LDFLAGS -s -w` | UCI `gc=20`, `maxprocs=2`, `memlimit=192MiB` (bytes) | Not auto-started; user configures DNS first |
+| **adguardhome** | `GO_PKG_LDFLAGS -s -w` | UCI `gc=20`, `maxprocs=2`, `memlimit=192MiB` (bytes) | **Enabled on boot** — primary DNS provider for this fork |
 | **cloudflared** | `GO_PKG_LDFLAGS -s -w` | `GOGC=10`, `GOMEMLIMIT=96MiB` | `enabled=0`; `loglevel=warn`; log on `/tmp` |
 | **NSS / ECM** | firmware 12.5 + crypto | `pbuf=auto`; SW/HW flow offload **off** | Let ECM own acceleration |
 | **sqm / sqm-nss** | — | service **disabled** until configured | Packages kept for on-demand use |

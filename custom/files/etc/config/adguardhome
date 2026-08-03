@@ -1,4 +1,6 @@
 
+# AdGuard Home is the primary DNS provider on this fork — service is
+# enabled/started by etc/uci-defaults/98-component-optimize on first boot.
 config adguardhome 'config'
 	# All paths must be readable by the configured user
 	option config_file '/etc/adguardhome/adguardhome.yaml'

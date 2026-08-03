@@ -13,7 +13,7 @@ Not locked to a single board: multi-profile images follow upstream device list; 
 | Category | Components |
 |----------|------------|
 | **VPN / mesh** | [Tailscale](https://tailscale.com/) (`tailscale`) — `-s -w` + `GOGC=10` / `GOMEMLIMIT=128MiB` |
-| **DNS / filter** | [AdGuard Home](https://adguard.com/adguard-home/overview.html) — `-s -w` + `gc=20` / `maxprocs=2` / 192 MiB soft limit |
+| **DNS / filter** | [AdGuard Home](https://adguard.com/adguard-home/overview.html) — **primary DNS, auto-start** + `-s -w` / `gc=20` / `maxprocs=2` / 192 MiB soft limit |
 | **Tunnel** | [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/) — `-s -w` + `GOGC=10` / `GOMEMLIMIT=96MiB` (disabled until configured) |
 | **NSS offload** | `kmod-qca-nss-drv`, `kmod-qca-nss-ecm`, `kmod-qca-nss-crypto`, `nss-eip-firmware`, bridge/vlan/pppoe/qdisc managers; NSS FW **12.5** |
 | **SQM / QoS** | `sqm-scripts`, `sqm-scripts-nss`, `luci-app-sqm`, `kmod-sched-cake` (installed, **not** auto-enabled) |
@@ -24,7 +24,7 @@ Not locked to a single board: multi-profile images follow upstream device list; 
 
 Per-component detail: [`docs/COMPONENT_OPTIMIZATIONS.md`](docs/COMPONENT_OPTIMIZATIONS.md).
 
-First-boot QoL (via `custom/files` → rootfs): disable OpenWrt SW/HW **flow offloading** (ECM/NSS owns acceleration), `pbuf` memory profile `auto`, enable Tailscale service, wireless country defaults. LAN **DHCPv4** is kept as `server` when LAN is static (`16_ensure_lan_dhcpv4`; no other DHCP rewrites).
+First-boot QoL (via `custom/files` → rootfs): disable OpenWrt SW/HW **flow offloading** (ECM/NSS owns acceleration), `pbuf` memory profile `auto`, **enable AdGuard Home** (primary DNS) and Tailscale, wireless country defaults. LAN **DHCPv4** is kept as `server` when LAN is static (`16_ensure_lan_dhcpv4`; no other DHCP rewrites).
 
 ## Quick build (1 GB IPQ807x)
 

@@ -31,7 +31,7 @@ Config stack:
 | Category | Packages / assets |
 |----------|-------------------|
 | VPN | `tailscale` (`-s -w`, `GOGC=10`, `GOMEMLIMIT=128MiB`) |
-| DNS | `adguardhome` |
+| DNS | `adguardhome` (**auto-start**, primary DNS provider) |
 | Tunnel | `cloudflared`, `luci-app-cloudflared` |
 | NSS | `kmod-qca-nss-drv/ecm/dp/crypto`, managers, `nss-eip-firmware`, FW 12.5 |
 | SQM | `sqm-scripts`, `sqm-scripts-nss`, `luci-app-sqm` |

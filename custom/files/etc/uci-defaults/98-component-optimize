@@ -11,7 +11,8 @@ if [ -n "$(uci -q get system.@system[0])" ]; then
 	uci -q commit system
 fi
 
-# --- AdGuard Home (UCI only; service stays disabled until user configures) ---
+# --- AdGuard Home (primary DNS on this fork — must auto-start) ---------------
+# RAM knobs stay; service is enabled so reboots keep AGH as DNS provider.
 if [ -n "$(uci -q get adguardhome.config)" ] || [ -f /etc/config/adguardhome ]; then
 	uci -q set adguardhome.config.gc='20'
 	uci -q set adguardhome.config.maxprocs='2'
@@ -19,6 +20,11 @@ if [ -n "$(uci -q get adguardhome.config)" ] || [ -f /etc/config/adguardhome ]; 
 	uci -q set adguardhome.config.memlimit='201326592'
 	uci -q set adguardhome.config.verbose='0'
 	uci -q commit adguardhome
+fi
+if [ -x /etc/init.d/adguardhome ]; then
+	/etc/init.d/adguardhome enable
+	# First-boot: start now if networking is already up (uci-defaults run late enough)
+	/etc/init.d/adguardhome start 2>/dev/null || true
 fi
 
 # --- cloudflared (keep disabled; lighter logs when user enables) -------------
