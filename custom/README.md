@@ -1,42 +1,41 @@
-# Fork customizations (survive upstream sync)
+# Fork customizations (`custom/`)
 
-Restored by `.github/workflows/sync_fork_with_customization.yaml` using `PRESERVE.list`.
+**Single home for everything this fork owns.** Survives upstream sync via `PRESERVE.list`.
 
-## Layout
+See **[docs/LAYOUT.md](docs/LAYOUT.md)** for the full maintenance map.
 
-| Path | Purpose |
-|------|---------|
-| `custom/files/` | Rootfs overlay → copied to gitignored `files/` at build time |
-| `custom/files/etc/init.d/tailscale` | RAM-tuned init (`GOGC=10`, `GOMEMLIMIT=128MiB`) |
-| `custom/files/etc/uci-defaults/16_ensure_lan_dhcpv4` | Keep LAN DHCPv4 `server` when LAN is static |
-| `custom/files/etc/config/sqm` + `usr/lib/sqm/nss-zk.qos` | NSS SQM template + fork-tuned shaper |
-| `custom/files/etc/uci-defaults/97-sqm-nss-optimize` | Pin `nss-zk.qos`; disable classic qos-scripts |
-| `custom/files/etc/uci-defaults/98-component-optimize` | zram; **enable+start AdGuard Home** (primary DNS); cloudflared |
-| `custom/files/etc/uci-defaults/99-qol_nss_tailscale` | Disable SW/HW flow offload; enable Tailscale |
-| `custom/files/etc/uci-defaults/99-qol_wireless` | Country/radios/SQM defaults (no DHCP) |
-| `custom/feeds.conf.append` | Appended to upstream `feeds.conf.default` after sync/build |
-| `custom/UPSTREAM_SHA` | Last synced `upstream/main_nss` tip (skip sync if unchanged) |
-| `custom/PRESERVE.list` | Backup/restore list for the sync workflow |
-| `clean_seed.config` | Package enables (Tailscale, AdGuard, Cloudflare, Argon, NSS…) |
-| `seed_ipq807x_1g.config` | 1GB RAM profile + shared NSS knobs |
-| `scripts/build-ipq807x-1g.sh` | One-shot build |
-| `scripts/apply-component-optimize.sh` | All Go packages `-s -w` + materialize overlays |
-| `scripts/apply-tailscale-optimize.sh` | Wrapper → `apply-component-optimize.sh` |
-
-## Build
+## Quick commands
 
 ```bash
-./scripts/build-ipq807x-1g.sh
-DEVICE=dynalink_dl-wrx36 ./scripts/build-ipq807x-1g.sh   # optional single board
+./custom/scripts/prepare.sh --feeds     # overlay + feeds + Go -s -w
+./custom/scripts/prepare.sh --config    # + defconfig + verify
+./custom/scripts/build.sh               # full image build
+DEVICE=qnap_301w ./custom/scripts/build.sh
 ```
 
-## Sync
+## Layout (summary)
 
-Manual **workflow_dispatch** only. Syncs when `upstream/main_nss` ≠ `custom/UPSTREAM_SHA`.
-Force with `force=true`.
+| Path | Role |
+|------|------|
+| `files/` | Rootfs overlay (init, uci-defaults, sqm, configs) |
+| `config/clean_seed.config` | Package selection |
+| `config/seed_ipq807x_1g.config` | 1GB / NSS platform knobs |
+| `config/required_symbols.txt` | Must-have `CONFIG_*=y` checks |
+| `scripts/*.sh` | prepare / build / verify / sync helpers |
+| `docs/` | BUILD, COMPONENTS, LAYOUT |
+| `UPSTREAM_SHA` | Last synced `main_nss` tip |
+| `feeds.conf.append` | Appended to `feeds.conf.default` (idempotent) |
 
-## First-boot network note
+## Workflows
 
-`16_ensure_lan_dhcpv4` only re-enables LAN DHCPv4 (`server`) when
-`network.lan.proto=static` and `dhcp.lan.dhcpv4` was left `disabled` by
-`15_odhcpd`. WAN and other interfaces are not modified.
+| Workflow | File | Calls |
+|----------|------|--------|
+| Build images | `.github/workflows/build-ipq807x.yml` | `prepare.sh --feeds`, verify |
+| Sync upstream | `.github/workflows/sync-upstream.yml` | `sync-backup.sh` / `sync-restore.sh` |
+
+## First-boot network notes
+
+- `16_ensure_lan_dhcpv4` — only re-enables LAN DHCPv4 when LAN is static
+- `97-sqm-nss-optimize` — pin `nss-zk.qos`; classic qos off
+- `98-component-optimize` — zram + **AdGuard Home enable/start** (primary DNS)
+- `99-qol_nss_tailscale` — ECM/NSS offload prefs + Tailscale enable

@@ -1,22 +1,13 @@
 # Paths restored after upstream sync (relative to repo root).
-# Lines starting with # are ignored. Directories are copied recursively.
+# Prefer whole trees over individual files — easier maintenance.
+# Lines starting with # are ignored.
 
-# Workflows
-.github/workflows/sync_fork_with_customization.yaml
-.github/workflows/custom_ipq807x.yml
-
-# Seed / package selection (fork-owned)
-clean_seed.config
-seed_ipq807x_1g.config
-
-# Entire custom tree (files overlay, feeds append, UPSTREAM_SHA, docs for custom)
+# Entire fork tree (scripts, config seeds, files overlay, docs, meta)
 custom/
 
-# Build helpers (canonical under scripts/; not mirrored in custom/)
-scripts/apply-component-optimize.sh
-scripts/apply-tailscale-optimize.sh
-scripts/build-ipq807x-1g.sh
+# Fork GitHub workflows (thin wrappers around custom/scripts)
+.github/workflows/build-ipq807x.yml
+.github/workflows/sync-upstream.yml
 
-# Docs + README
-docs/
+# Landing page (GitHub renders root README)
 README.md

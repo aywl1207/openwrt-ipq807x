@@ -10,13 +10,8 @@ src-git qosmio https://github.com/qosmio/packages-extra.git
 #src-git oldpackages http://git.openwrt.org/packages.git
 #src-link custom /usr/src/openwrt/custom-feed
 
-# ---------------------------------------------------------------------------
-# Tailscale VPN — appended by custom/feeds.conf.append after upstream sync / build
-#
-# Official package source is already the openwrt packages feed:
-#   src-git packages https://github.com/openwrt/packages.git  → net/tailscale
+# BEGIN custom/feeds.conf.append
+# Official Tailscale package lives in the openwrt packages feed (net/tailscale).
 # No extra src-git is required (avoids feed conflicts / duplicate packages).
-#
-# After feeds install, strip + RAM-tune with:
-#   ./scripts/apply-tailscale-optimize.sh
-# ---------------------------------------------------------------------------
+# After feeds install: ./custom/scripts/apply-go-optimize.sh
+# END custom/feeds.conf.append

@@ -1,0 +1,166 @@
+name: Sync upstream
+
+# Manual only. Resets to AgustinLorenzo/openwrt main_nss when it moves
+# (tracked in custom/UPSTREAM_SHA), unless force=true.
+# Backup/restore logic: custom/scripts/sync-*.sh + custom/PRESERVE.list
+
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force sync even if upstream SHA is unchanged'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+permissions:
+  contents: write
+
+jobs:
+  check_upstream:
+    name: Check upstream
+    runs-on: ubuntu-latest
+    outputs:
+      need_sync: ${{ steps.check.outputs.need_sync }}
+      upstream_sha: ${{ steps.check.outputs.upstream_sha }}
+      previous_sha: ${{ steps.check.outputs.previous_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT }}
+          fetch-depth: 1
+
+      - name: Compare with upstream/main_nss
+        id: check
+        run: |
+          set -euo pipefail
+          git remote remove upstream 2>/dev/null || true
+          git remote add upstream https://github.com/AgustinLorenzo/openwrt.git
+          git fetch --depth=1 upstream main_nss
+
+          UPSTREAM_SHA="$(git rev-parse upstream/main_nss)"
+          PREVIOUS_SHA=""
+          if [[ -f custom/UPSTREAM_SHA ]]; then
+            PREVIOUS_SHA="$(tr -d '[:space:]' < custom/UPSTREAM_SHA)"
+          fi
+
+          {
+            echo "upstream_sha=${UPSTREAM_SHA}"
+            echo "previous_sha=${PREVIOUS_SHA}"
+          } >> "$GITHUB_OUTPUT"
+
+          FORCE="${{ github.event.inputs.force }}"
+          echo "Upstream:  ${UPSTREAM_SHA}"
+          echo "Recorded:  ${PREVIOUS_SHA:-<none>}"
+          echo "Force:     ${FORCE}"
+
+          if [[ "${FORCE}" == "true" ]]; then
+            echo "need_sync=true" >> "$GITHUB_OUTPUT"
+            echo "Result: FORCE sync"
+            exit 0
+          fi
+          if [[ -z "${PREVIOUS_SHA}" ]]; then
+            echo "need_sync=true" >> "$GITHUB_OUTPUT"
+            echo "Result: no UPSTREAM_SHA yet"
+            exit 0
+          fi
+          if [[ "${UPSTREAM_SHA}" == "${PREVIOUS_SHA}" ]]; then
+            echo "need_sync=false" >> "$GITHUB_OUTPUT"
+            echo "Result: already current — skip"
+          else
+            echo "need_sync=true" >> "$GITHUB_OUTPUT"
+            echo "Result: upstream moved"
+            git log --oneline "${PREVIOUS_SHA}..${UPSTREAM_SHA}" 2>/dev/null | head -30 || true
+          fi
+
+  sync_fork:
+    name: Sync + restore custom/
+    needs: check_upstream
+    if: needs.check_upstream.outputs.need_sync == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT }}
+          fetch-depth: 0
+
+      - name: Git identity
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      - name: Backup customizations
+        run: |
+          set -euo pipefail
+          chmod +x custom/scripts/*.sh
+          ./custom/scripts/sync-backup.sh /tmp/openwrt-custom-backup
+
+      - name: Reset to upstream main_nss
+        run: |
+          set -euo pipefail
+          git remote remove upstream 2>/dev/null || true
+          git remote add upstream https://github.com/AgustinLorenzo/openwrt.git
+          git fetch upstream main_nss
+          git reset --hard upstream/main_nss
+          echo "Now at upstream: $(git rev-parse --short HEAD)"
+          git rev-parse upstream/main_nss > /tmp/new_upstream_sha
+
+      - name: Restore customizations
+        run: |
+          set -euo pipefail
+          # restore scripts from backup first if tree was wiped
+          if [[ ! -x custom/scripts/sync-restore.sh && -x /tmp/openwrt-custom-backup/custom/scripts/sync-restore.sh ]]; then
+            cp -a /tmp/openwrt-custom-backup/custom ./custom
+          fi
+          chmod +x custom/scripts/*.sh
+          ./custom/scripts/sync-restore.sh /tmp/openwrt-custom-backup
+          git add -A
+          git status --short | head -80
+
+      - name: Push rebased tree
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+        run: |
+          git commit -m "chore(sync): reset to upstream/main_nss and restore custom/" || {
+            echo "Nothing to commit after restore"
+          }
+          git push origin HEAD:custom_main_nss --force
+
+      - name: Re-fetch Argon theme
+        run: |
+          set -euo pipefail
+          rm -rf package/luci-theme-argon
+          mkdir -p package/luci-theme-argon
+          curl -fsSL -L https://github.com/jerrykuku/luci-theme-argon/archive/refs/heads/master.zip -o /tmp/argon.zip
+          unzip -q /tmp/argon.zip -d /tmp
+          src="$(find /tmp -maxdepth 1 -type d -name 'luci-theme-argon-*' | head -1)"
+          [[ -n "${src}" && -d "${src}" ]] || { echo "ERROR: argon extract failed"; exit 1; }
+          cp -a "${src}"/. package/luci-theme-argon/
+          rm -rf /tmp/argon.zip "${src}"
+          git add package/luci-theme-argon custom .github/workflows README.md
+          if git diff --cached --quiet; then
+            echo "No argon/customization changes"
+          else
+            git commit -m "chore(sync): re-apply luci-theme-argon"
+          fi
+
+      - name: Push Argon commit
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+        run: git push origin HEAD:custom_main_nss
+
+  skip_notice:
+    name: Already up to date
+    needs: check_upstream
+    if: needs.check_upstream.outputs.need_sync != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: No sync needed
+        run: |
+          echo "Upstream main_nss unchanged since last sync."
+          echo "previous=${{ needs.check_upstream.outputs.previous_sha }}"
+          echo "upstream=${{ needs.check_upstream.outputs.upstream_sha }}"
+          echo "Force with force=true if needed."

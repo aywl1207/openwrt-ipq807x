@@ -1,0 +1,17 @@
+# Required Kconfig symbols after: merge seeds + make defconfig
+# Format: one CONFIG_... per line (comments and blanks ignored).
+# Used by custom/scripts/verify-config.sh and CI.
+
+CONFIG_TARGET_qualcommax_ipq807x
+CONFIG_PACKAGE_tailscale
+CONFIG_PACKAGE_adguardhome
+CONFIG_PACKAGE_cloudflared
+CONFIG_PACKAGE_luci-theme-argon
+CONFIG_PACKAGE_kmod-qca-nss-drv
+CONFIG_PACKAGE_kmod-qca-nss-ecm
+CONFIG_PACKAGE_kmod-qca-nss-crypto
+CONFIG_PACKAGE_nss-eip-firmware
+CONFIG_PACKAGE_sqm-scripts-nss
+CONFIG_PACKAGE_kmod-qca-nss-drv-qdisc
+CONFIG_PACKAGE_kmod-qca-nss-drv-igs
+CONFIG_PACKAGE_zram-swap
