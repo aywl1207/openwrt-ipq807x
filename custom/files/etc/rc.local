@@ -1,0 +1,7 @@
+# Put your custom commands here that should be executed once
+# the system init finished. By default this file does nothing.
+#
+# Fork policy: prefer UCI + procd + sysctl.d + cron.
+# See custom/docs/SITE.md — do not patch /etc/init.d/* here.
+
+exit 0

@@ -47,7 +47,11 @@ check_x etc/init.d/cloudflared
 check_file etc/config/adguardhome
 check_file etc/config/cloudflared
 check_file etc/config/sqm
+check_file etc/rc.local
+check_file etc/sysctl.d/60-cloudflared-ping.conf
 check_file usr/lib/sqm/nss-zk.qos
+check_x etc/hotplug.d/iface/99-sqm-enabled
+check_x etc/adguardhome/filter-refresh.sh
 
 check_grep etc/init.d/tailscale 'GOGC=10'
 check_grep etc/init.d/tailscale 'GOMEMLIMIT'
@@ -57,6 +61,8 @@ check_grep etc/uci-defaults/98-component-optimize 'adguardhome enable'
 check_grep etc/config/sqm 'nss-zk.qos'
 check_grep usr/lib/sqm/nss-zk.qos 'interval 50ms'
 check_grep usr/lib/sqm/nss-zk.qos 'leaving qca_nss_qdisc'
+check_grep etc/rc.local '^exit 0'
+check_grep etc/sysctl.d/60-cloudflared-ping.conf 'ping_group_range'
 
 # Safety: first-boot scripts must not rewrite WAN / invent DHCP (except 16_)
 for f in 97-sqm-nss-optimize 98-component-optimize 99-qol_nss_tailscale 99-qol_wireless; do

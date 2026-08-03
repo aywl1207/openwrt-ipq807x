@@ -7,6 +7,9 @@ Packages listed in the README remain installed; tuning is size/RAM/runtime only.
 |-----------|----------------|---------------|--------|
 | **tailscale** | `GO_PKG_LDFLAGS -s -w` | `GOGC=10`, `GOMEMLIMIT=128MiB` | Overlay init; enable on first boot |
 | **luci-app-tailscale-community** | LuCI app + i18n | — | Status / login / routes; **`luci-i18n-…-zh-tw`** |
+| **boot / sysctl** | minimal `rc.local` | `ping_group_range` | See [SITE.md](SITE.md); no init.d sed |
+| **SQM hotplug** | `99-sqm-enabled` | — | Restart SQM on matching ifup |
+| **AGH filter refresh** | `filter-refresh.sh` | cron | Secrets in `/etc/adguardhome/api.env` only |
 | **adguardhome** | `GO_PKG_LDFLAGS -s -w` | `gc=20`, `maxprocs=2`, 192 MiB soft limit | **Primary DNS — auto-start** |
 | **cloudflared** | `GO_PKG_LDFLAGS -s -w` | `GOGC=10`, `GOMEMLIMIT=96MiB` | disabled until configured; log → `/tmp` |
 | **NSS / ECM** | FW 12.5 + crypto | `pbuf=auto`; SW/HW flow offload **off** | ECM owns acceleration |
@@ -24,9 +27,13 @@ Packages listed in the README remain installed; tuning is size/RAM/runtime only.
 
 ```text
 custom/files/
+  etc/rc.local                          # minimal exit 0
   etc/init.d/{tailscale,cloudflared}
   etc/config/{adguardhome,cloudflared,mdns_repeater,sqm}
   etc/sysctl.d/50-adguardhome.conf
+  etc/sysctl.d/60-cloudflared-ping.conf
+  etc/hotplug.d/iface/99-sqm-enabled
+  etc/adguardhome/filter-refresh.sh     # cron helper; needs api.env on device
   usr/lib/sqm/nss-zk.qos[.help]
   etc/uci-defaults/
     16_ensure_lan_dhcpv4

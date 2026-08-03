@@ -21,7 +21,8 @@ Fork of [AgustinLorenzo/openwrt](https://github.com/AgustinLorenzo/openwrt) **NS
 | **Network utils** | Cloudflare DDNS, mdns-repeater, udp-broadcast-relay-redux, drill, ipset |
 | **Memory** | zram 256 MiB + lzo-rle; haveged |
 
-Details: [`custom/docs/COMPONENTS.md`](custom/docs/COMPONENTS.md).
+Details: [`custom/docs/COMPONENTS.md`](custom/docs/COMPONENTS.md).  
+Runtime / boot / site config (no secrets): [`custom/docs/SITE.md`](custom/docs/SITE.md).
 
 ## Quick build
 
