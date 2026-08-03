@@ -35,7 +35,7 @@ if [[ "${DO_FEEDS}" -eq 1 ]]; then
   info "feeds update / install"
   ./scripts/feeds update -a
   ./scripts/feeds install -a
-  ./scripts/feeds install tailscale adguardhome cloudflared 2>/dev/null || true
+  ./scripts/feeds install tailscale luci-app-tailscale-community adguardhome cloudflared 2>/dev/null || true
   "${CUSTOM_SCRIPTS_DIR}/apply-go-optimize.sh"
 else
   # Still verify overlay without touching feeds tree

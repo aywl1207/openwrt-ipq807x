@@ -4,6 +4,8 @@
 
 CONFIG_TARGET_qualcommax_ipq807x
 CONFIG_PACKAGE_tailscale
+CONFIG_PACKAGE_luci-app-tailscale-community
+CONFIG_PACKAGE_luci-i18n-tailscale-community-zh-tw
 CONFIG_PACKAGE_adguardhome
 CONFIG_PACKAGE_cloudflared
 CONFIG_PACKAGE_luci-theme-argon

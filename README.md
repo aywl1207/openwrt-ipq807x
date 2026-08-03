@@ -12,7 +12,7 @@ Fork of [AgustinLorenzo/openwrt](https://github.com/AgustinLorenzo/openwrt) **NS
 
 | Category | Components |
 |----------|------------|
-| **VPN / mesh** | Tailscale — `-s -w` + `GOGC=10` / `GOMEMLIMIT=128MiB` |
+| **VPN / mesh** | Tailscale — `-s -w` + `GOGC=10` / `GOMEMLIMIT=128MiB` + **LuCI** (`luci-app-tailscale-community`, zh-TW) |
 | **DNS / filter** | AdGuard Home — **primary DNS, auto-start** + RAM knobs |
 | **Tunnel** | cloudflared — optimized, disabled until configured |
 | **NSS offload** | nss-drv / ecm / crypto / eip-firmware; FW **12.5** |

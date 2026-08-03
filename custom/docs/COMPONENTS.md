@@ -6,6 +6,7 @@ Packages listed in the README remain installed; tuning is size/RAM/runtime only.
 | Component | Flash / binary | RAM / runtime | Notes |
 |-----------|----------------|---------------|--------|
 | **tailscale** | `GO_PKG_LDFLAGS -s -w` | `GOGC=10`, `GOMEMLIMIT=128MiB` | Overlay init; enable on first boot |
+| **luci-app-tailscale-community** | LuCI app + i18n | — | Status / login / routes; **`luci-i18n-…-zh-tw`** |
 | **adguardhome** | `GO_PKG_LDFLAGS -s -w` | `gc=20`, `maxprocs=2`, 192 MiB soft limit | **Primary DNS — auto-start** |
 | **cloudflared** | `GO_PKG_LDFLAGS -s -w` | `GOGC=10`, `GOMEMLIMIT=96MiB` | disabled until configured; log → `/tmp` |
 | **NSS / ECM** | FW 12.5 + crypto | `pbuf=auto`; SW/HW flow offload **off** | ECM owns acceleration |
