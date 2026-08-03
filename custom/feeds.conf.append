@@ -1,0 +1,11 @@
+
+# ---------------------------------------------------------------------------
+# Tailscale VPN — appended by custom/feeds.conf.append after upstream sync / build
+#
+# Official package source is already the openwrt packages feed:
+#   src-git packages https://github.com/openwrt/packages.git  → net/tailscale
+# No extra src-git is required (avoids feed conflicts / duplicate packages).
+#
+# After feeds install, strip + RAM-tune with:
+#   ./scripts/apply-tailscale-optimize.sh
+# ---------------------------------------------------------------------------

@@ -1,5 +1,66 @@
 ![OpenWrt logo](include/logo.png)
 
+[![Build Custom IPQ807x NSS WiFi for devices](https://github.com/aywl1207/openwrt-ipq807x/actions/workflows/custom_ipq807x.yml/badge.svg?branch=custom_main_nss)](https://github.com/aywl1207/openwrt-ipq807x/actions/workflows/custom_ipq807x.yml)
+
+# openwrt-ipq807x (`custom_main_nss`)
+
+Fork of [AgustinLorenzo/openwrt](https://github.com/AgustinLorenzo/openwrt) **NSS Wi‑Fi** tree, tuned for **Qualcomm IPQ807x routers with ~1 GB RAM**.
+
+Not locked to a single board: multi-profile images follow upstream device list; memory profile is forced to **1024 MB**. Optional single-device builds via `DEVICE=...`.
+
+## Included tools & packages
+
+| Category | Components |
+|----------|------------|
+| **VPN / mesh** | [Tailscale](https://tailscale.com/) (`tailscale`) — `-s -w` + `GOGC=10` / `GOMEMLIMIT=128MiB` |
+| **DNS / filter** | [AdGuard Home](https://adguard.com/adguard-home/overview.html) — `-s -w` + `gc=20` / `maxprocs=2` / 192 MiB soft limit |
+| **Tunnel** | [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/) — `-s -w` + `GOGC=10` / `GOMEMLIMIT=96MiB` (disabled until configured) |
+| **NSS offload** | `kmod-qca-nss-drv`, `kmod-qca-nss-ecm`, `kmod-qca-nss-crypto`, `nss-eip-firmware`, bridge/vlan/pppoe/qdisc managers; NSS FW **12.5** |
+| **SQM / QoS** | `sqm-scripts`, `sqm-scripts-nss`, `luci-app-sqm`, `kmod-sched-cake` (installed, **not** auto-enabled) |
+| **UI** | LuCI + **Argon** theme (`luci-theme-argon`), Traditional Chinese (`zh_Hant` / `*-zh-tw` i18n packs) |
+| **Network utils** | `ddns-scripts-cloudflare`, `mdns-repeater` (br-lan only), `udp-broadcast-relay-redux`, `drill`, `ipset` |
+| **Memory** | `zram-swap` + `kmod-zram` — **256 MiB** + `lzo-rle` (not half-RAM default) |
+| **Entropy / misc** | `haveged` (enabled), `shadow-all`, `iwinfo` |
+
+Per-component detail: [`docs/COMPONENT_OPTIMIZATIONS.md`](docs/COMPONENT_OPTIMIZATIONS.md).
+
+First-boot QoL (via `custom/files` → rootfs): disable OpenWrt SW/HW **flow offloading** (ECM/NSS owns acceleration), `pbuf` memory profile `auto`, enable Tailscale service, wireless country defaults. LAN **DHCPv4** is kept as `server` when LAN is static (`16_ensure_lan_dhcpv4`; no other DHCP rewrites).
+
+## Quick build (1 GB IPQ807x)
+
+```bash
+# Multi-device (uses .full_config device set) + 1GB seed + clean_seed packages
+./scripts/build-ipq807x-1g.sh
+
+# Optional: one board only
+DEVICE=dynalink_dl-wrx36 ./scripts/build-ipq807x-1g.sh
+DEVICE=qnap_301w ./scripts/build-ipq807x-1g.sh
+```
+
+Config stack:
+
+```text
+.full_config  →  clean_seed.config  →  seed_ipq807x_1g.config  →  make defconfig
+```
+
+| File | Role |
+|------|------|
+| `clean_seed.config` | Enable/disable packages (Tailscale, AdGuard, Argon, NSS crypto, …) |
+| `seed_ipq807x_1g.config` | `IPQ_MEM_PROFILE_1024`, NSS HIGH, ath11k NSS, shared kmods |
+| `custom/files/` | Durable rootfs overlay (`/files` is gitignored) |
+| `scripts/apply-component-optimize.sh` | Strip Go packages + materialize all RAM/runtime overlays |
+| `custom/PRESERVE.list` | Paths restored after upstream sync |
+
+More detail: [`docs/BUILD_TAILSCALE_NSS.md`](docs/BUILD_TAILSCALE_NSS.md), [`custom/README.md`](custom/README.md).
+
+## Upstream sync
+
+Manual only (Actions → **Sync Fork**). Runs a hard reset **only when** `upstream/main_nss` differs from `custom/UPSTREAM_SHA`. Use `force=true` to re-sync anyway. No weekly cron.
+
+---
+
+## Upstream OpenWrt project
+
 OpenWrt Project is a Linux operating system targeting embedded devices. Instead
 of trying to create a single, static firmware, OpenWrt provides a fully
 writable filesystem with package management. This frees you from the
@@ -23,7 +84,7 @@ image usable to migrate from a vendor stock firmware to OpenWrt, try the
 If your device is supported, please follow the **Info** link to see install
 instructions or consult the support resources listed below.
 
-##
+## 
 
 An advanced user may require additional or specific package. (Toolchain, SDK, ...) For everything else than simple firmware download, try the wiki download page:
 
@@ -44,7 +105,7 @@ documentation.
 
 ```
 binutils bzip2 diff find flex gawk gcc-6+ getopt grep install libc-dev libz-dev
-make4.1+ perl python3.8+ rsync subversion unzip which
+make4.1+ perl python3.7+ rsync subversion unzip which
 ```
 
 ### Quickstart

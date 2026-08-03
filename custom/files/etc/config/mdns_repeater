@@ -1,0 +1,5 @@
+
+config mdns_repeater 'main'
+	# Only bridge LAN by default — eth0.2 often does not exist on DSA boards
+	# and causes noisy restarts. Add WAN/guest interfaces via LuCI/UCI if needed.
+	list interface 'br-lan'

@@ -1,0 +1,267 @@
+name: Sync Fork and Apply Customizations
+
+# Manual only — no weekly schedule.
+# Runs a real reset only when AgustinLorenzo/openwrt main_nss has new commits
+# (tracked in custom/UPSTREAM_SHA), unless force=true.
+
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force sync even if upstream SHA is unchanged'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+permissions:
+  contents: write
+
+jobs:
+  check_upstream:
+    name: Check upstream for updates
+    runs-on: ubuntu-latest
+    outputs:
+      need_sync: ${{ steps.check.outputs.need_sync }}
+      upstream_sha: ${{ steps.check.outputs.upstream_sha }}
+      previous_sha: ${{ steps.check.outputs.previous_sha }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT }}
+          fetch-depth: 1
+
+      - name: Compare with upstream/main_nss
+        id: check
+        run: |
+          set -euo pipefail
+          git remote remove upstream 2>/dev/null || true
+          git remote add upstream https://github.com/AgustinLorenzo/openwrt.git
+          git fetch --depth=1 upstream main_nss
+
+          UPSTREAM_SHA="$(git rev-parse upstream/main_nss)"
+          PREVIOUS_SHA=""
+          if [[ -f custom/UPSTREAM_SHA ]]; then
+            PREVIOUS_SHA="$(tr -d '[:space:]' < custom/UPSTREAM_SHA)"
+          fi
+
+          echo "upstream_sha=${UPSTREAM_SHA}" >> "$GITHUB_OUTPUT"
+          echo "previous_sha=${PREVIOUS_SHA}" >> "$GITHUB_OUTPUT"
+
+          FORCE="${{ github.event.inputs.force }}"
+          echo "Upstream:  ${UPSTREAM_SHA}"
+          echo "Recorded:  ${PREVIOUS_SHA:-<none>}"
+          echo "Force:     ${FORCE}"
+
+          if [[ "${FORCE}" == "true" ]]; then
+            echo "need_sync=true" >> "$GITHUB_OUTPUT"
+            echo "Result: FORCE sync requested"
+            exit 0
+          fi
+
+          if [[ -z "${PREVIOUS_SHA}" ]]; then
+            echo "need_sync=true" >> "$GITHUB_OUTPUT"
+            echo "Result: no UPSTREAM_SHA marker yet → will sync"
+            exit 0
+          fi
+
+          if [[ "${UPSTREAM_SHA}" == "${PREVIOUS_SHA}" ]]; then
+            echo "need_sync=false" >> "$GITHUB_OUTPUT"
+            echo "Result: already on latest upstream — skip sync"
+          else
+            echo "need_sync=true" >> "$GITHUB_OUTPUT"
+            echo "Result: upstream moved → will sync"
+            git log --oneline "${PREVIOUS_SHA}..${UPSTREAM_SHA}" 2>/dev/null | head -30 || true
+          fi
+
+  sync_fork:
+    name: Sync fork (only if upstream changed)
+    needs: check_upstream
+    if: needs.check_upstream.outputs.need_sync == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT }}
+          fetch-depth: 0
+
+      - name: Set up Git configuration
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      - name: Backup customizations → /tmp/openwrt-custom-backup
+        run: |
+          set -euo pipefail
+          BACKUP=/tmp/openwrt-custom-backup
+          rm -rf "$BACKUP"
+          mkdir -p "$BACKUP"
+
+          LIST=custom/PRESERVE.list
+          if [[ ! -f "$LIST" ]]; then
+            echo "WARNING: custom/PRESERVE.list missing; using built-in fallback list"
+            LIST=/tmp/preserve-fallback.list
+            cat > "$LIST" <<'EOF'
+          .github/workflows/sync_fork_with_customization.yaml
+          .github/workflows/custom_ipq807x.yml
+          clean_seed.config
+          seed_ipq807x_1g.config
+          custom/
+          scripts/apply-component-optimize.sh
+          scripts/apply-tailscale-optimize.sh
+          scripts/build-ipq807x-1g.sh
+          docs/
+          README.md
+          EOF
+          fi
+
+          echo "=== Preserving paths ==="
+          while IFS= read -r raw || [[ -n "$raw" ]]; do
+            path="$(echo "$raw" | sed 's/#.*//;s/[[:space:]]*$//;s/^[[:space:]]*//')"
+            [[ -z "$path" ]] && continue
+            if [[ ! -e "$path" ]]; then
+              echo "  skip (missing): $path"
+              continue
+            fi
+            echo "  backup: $path"
+            mkdir -p "$BACKUP/$(dirname "$path")"
+            if [[ -d "$path" ]]; then
+              rm -rf "$BACKUP/$path"
+              cp -a "$path" "$BACKUP/$path"
+            else
+              cp -a "$path" "$BACKUP/$path"
+            fi
+          done < "$LIST"
+
+          cp -a "$LIST" "$BACKUP/PRESERVE.list.used" 2>/dev/null || true
+          echo "Backup complete:"
+          find "$BACKUP" -type f | sort | head -200
+
+      - name: Reset to upstream main_nss
+        run: |
+          set -euo pipefail
+          git remote remove upstream 2>/dev/null || true
+          git remote add upstream https://github.com/AgustinLorenzo/openwrt.git
+          git fetch upstream main_nss
+          git reset --hard upstream/main_nss
+          echo "Now at upstream: $(git rev-parse --short HEAD)"
+          echo "$(git rev-parse upstream/main_nss)" > /tmp/new_upstream_sha
+
+      - name: Restore customizations from backup
+        run: |
+          set -euo pipefail
+          BACKUP=/tmp/openwrt-custom-backup
+          LIST="$BACKUP/PRESERVE.list.used"
+          [[ -f "$LIST" ]] || LIST=custom/PRESERVE.list
+
+          if [[ -d "$BACKUP/custom" ]]; then
+            rm -rf custom
+            cp -a "$BACKUP/custom" custom
+            echo "Restored custom/ tree"
+          fi
+
+          while IFS= read -r raw || [[ -n "$raw" ]]; do
+            path="$(echo "$raw" | sed 's/#.*//;s/[[:space:]]*$//;s/^[[:space:]]*//')"
+            [[ -z "$path" ]] && continue
+            [[ "$path" == "custom/" || "$path" == "custom" ]] && continue
+            if [[ ! -e "$BACKUP/$path" ]]; then
+              echo "  skip restore (not in backup): $path"
+              continue
+            fi
+            echo "  restore: $path"
+            mkdir -p "$(dirname "$path")"
+            if [[ -d "$BACKUP/$path" ]]; then
+              rm -rf "$path"
+              cp -a "$BACKUP/$path" "$path"
+            else
+              cp -a "$BACKUP/$path" "$path"
+            fi
+          done < "$LIST"
+
+          # Record the upstream tip we just synced to
+          mkdir -p custom
+          cp /tmp/new_upstream_sha custom/UPSTREAM_SHA
+          echo "Recorded custom/UPSTREAM_SHA=$(cat custom/UPSTREAM_SHA)"
+
+          if [[ -f custom/feeds.conf.append ]]; then
+            if ! grep -q 'Tailscale VPN' feeds.conf.default 2>/dev/null; then
+              echo "Appending custom/feeds.conf.append → feeds.conf.default"
+              cat custom/feeds.conf.append >> feeds.conf.default
+            fi
+          fi
+
+          if [[ -d custom/files ]]; then
+            mkdir -p files
+            rsync -a custom/files/ files/
+            find files/etc/init.d files/etc/uci-defaults -type f -exec chmod +x {} \; 2>/dev/null || true
+            echo "Materialized files/ from custom/files/"
+          fi
+
+          chmod +x scripts/apply-component-optimize.sh scripts/apply-tailscale-optimize.sh scripts/build-ipq807x-1g.sh 2>/dev/null || true
+
+          # Fail fast if critical paths missing after restore
+          for f in clean_seed.config seed_ipq807x_1g.config scripts/apply-component-optimize.sh scripts/apply-tailscale-optimize.sh scripts/build-ipq807x-1g.sh custom/PRESERVE.list; do
+            [[ -e "$f" ]] || { echo "ERROR: missing after restore: $f"; exit 1; }
+          done
+
+          git add -A
+          git status --short | head -80
+
+      - name: Push rebased tree (force)
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+        run: |
+          git commit -m "chore(sync): reset to upstream/main_nss and restore fork customizations" || {
+            echo "Nothing to commit after restore (tree identical?)"
+          }
+          git push origin HEAD:custom_main_nss --force
+
+      - name: Clone Argon theme
+        run: |
+          set -euo pipefail
+          echo "Cloning Argon theme..."
+          rm -rf package/luci-theme-argon
+          mkdir -p package/luci-theme-argon
+          curl -fsSL -L https://github.com/jerrykuku/luci-theme-argon/archive/refs/heads/master.zip -o /tmp/argon.zip
+          unzip -q /tmp/argon.zip -d /tmp
+          src="$(find /tmp -maxdepth 1 -type d -name 'luci-theme-argon-*' | head -1)"
+          [[ -n "$src" && -d "$src" ]] || { echo "ERROR: argon zip extract failed"; exit 1; }
+          cp -a "$src"/. package/luci-theme-argon/
+          rm -rf /tmp/argon.zip "$src"
+
+      - name: Commit Argon + finalize
+        run: |
+          set -euo pipefail
+          git add package/luci-theme-argon
+          git add custom clean_seed.config seed_ipq807x_1g.config \
+            scripts/apply-component-optimize.sh scripts/apply-tailscale-optimize.sh \
+            scripts/build-ipq807x-1g.sh \
+            docs .github/workflows README.md \
+            2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No argon/customization changes to commit"
+          else
+            git commit -m "chore(sync): re-apply luci-theme-argon and ensure customizations present"
+          fi
+
+      - name: Push customization commit
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+        run: git push origin HEAD:custom_main_nss
+
+  skip_notice:
+    name: Already up to date
+    needs: check_upstream
+    if: needs.check_upstream.outputs.need_sync != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: No sync needed
+        run: |
+          echo "Upstream main_nss has not changed since last sync."
+          echo "previous=${{ needs.check_upstream.outputs.previous_sha }}"
+          echo "upstream=${{ needs.check_upstream.outputs.upstream_sha }}"
+          echo "To force a full re-sync, re-run this workflow with force=true."

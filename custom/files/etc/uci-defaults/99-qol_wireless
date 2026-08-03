@@ -1,0 +1,28 @@
+#!/bin/sh
+# Multi-device first-boot wireless / system QoL (no DHCP changes).
+# DHCP policy lives only in 16_ensure_lan_dhcpv4.
+# NSS / Tailscale policy lives in 99-qol_nss_tailscale.
+
+[ -n "$(uci -q get wireless.radio0)" ] && uci -q set wireless.radio0.country='US'
+[ -n "$(uci -q get wireless.radio1)" ] && {
+	uci -q set wireless.radio1.country='US'
+	uci -q set wireless.radio1.disabled=0
+}
+[ -n "$(uci -q get wireless.radio2)" ] && {
+	uci -q set wireless.radio2.country='US'
+	uci -q set wireless.radio2.disabled=0
+}
+uci -q commit wireless 2>/dev/null || true
+
+[ -n "$(uci -q get system.@system[0])" ] && {
+	uci -q set system.@system[0].cronloglevel='7'
+	uci -q commit system
+}
+
+# SQM optional; leave disabled by default (user enables when needed)
+if [ -x /etc/init.d/sqm ]; then
+	/etc/init.d/sqm stop 2>/dev/null || true
+	/etc/init.d/sqm disable 2>/dev/null || true
+fi
+
+exit 0

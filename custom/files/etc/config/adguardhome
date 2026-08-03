@@ -1,0 +1,18 @@
+
+config adguardhome 'config'
+	# All paths must be readable by the configured user
+	option config_file '/etc/adguardhome/adguardhome.yaml'
+	# Where to store persistent data by AdGuard Home
+	option work_dir '/var/lib/adguardhome'
+	option user 'adguardhome'
+	option group 'adguardhome'
+	option verbose '0'
+
+	# IPQ807x ~1GB RAM tuning (upstream UCI knobs → procd env)
+	# More frequent GC (default 100)
+	option gc '20'
+	# Cap OS threads so NSS/Wi-Fi datapath keeps CPU
+	option maxprocs '2'
+	# Soft heap cap in BYTES (init passes GOMEMLIMIT raw; 192 MiB)
+	# 192 * 1024 * 1024 = 201326592
+	option memlimit '201326592'

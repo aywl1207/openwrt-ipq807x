@@ -1,0 +1,44 @@
+#!/bin/sh
+# Per-component first-boot tuning for IPQ807x ~1GB builds.
+# Safe defaults only — does not enable services that need user secrets.
+
+# --- zram-swap ---------------------------------------------------------------
+# Default formula (MemTotal_KB/2048) ≈ 512MiB zram on 1GB boards — heavy with NSS.
+# Cap at 256MiB; use kernel default LZO-RLE (LZ4 backend not enabled in full_config).
+if [ -n "$(uci -q get system.@system[0])" ]; then
+	uci -q set system.@system[0].zram_size_mb='256'
+	uci -q set system.@system[0].zram_comp_algo='lzo-rle'
+	uci -q commit system
+fi
+
+# --- AdGuard Home (UCI only; service stays disabled until user configures) ---
+if [ -n "$(uci -q get adguardhome.config)" ] || [ -f /etc/config/adguardhome ]; then
+	uci -q set adguardhome.config.gc='20'
+	uci -q set adguardhome.config.maxprocs='2'
+	# bytes (see custom/files/etc/config/adguardhome comment)
+	uci -q set adguardhome.config.memlimit='201326592'
+	uci -q set adguardhome.config.verbose='0'
+	uci -q commit adguardhome
+fi
+
+# --- cloudflared (keep disabled; lighter logs when user enables) -------------
+if [ -n "$(uci -q get cloudflared.config)" ] || [ -f /etc/config/cloudflared ]; then
+	uci -q set cloudflared.config.loglevel='warn'
+	uci -q set cloudflared.config.logfile='/tmp/cloudflared.log'
+	# do not force enabled=1
+	uci -q commit cloudflared
+fi
+
+# --- SQM: leave package installed but not auto-shaping until configured -----
+if [ -x /etc/init.d/sqm ]; then
+	/etc/init.d/sqm stop 2>/dev/null || true
+	/etc/init.d/sqm disable 2>/dev/null || true
+fi
+
+# --- haveged: already tiny; ensure enabled for early entropy -----------------
+[ -x /etc/init.d/haveged ] && /etc/init.d/haveged enable 2>/dev/null || true
+
+# --- zram init enable --------------------------------------------------------
+[ -x /etc/init.d/zram ] && /etc/init.d/zram enable 2>/dev/null || true
+
+exit 0

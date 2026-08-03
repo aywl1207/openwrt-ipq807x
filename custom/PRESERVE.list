@@ -1,0 +1,22 @@
+# Paths restored after upstream sync (relative to repo root).
+# Lines starting with # are ignored. Directories are copied recursively.
+
+# Workflows
+.github/workflows/sync_fork_with_customization.yaml
+.github/workflows/custom_ipq807x.yml
+
+# Seed / package selection (fork-owned)
+clean_seed.config
+seed_ipq807x_1g.config
+
+# Entire custom tree (files overlay, feeds append, UPSTREAM_SHA, docs for custom)
+custom/
+
+# Build helpers (canonical under scripts/; not mirrored in custom/)
+scripts/apply-component-optimize.sh
+scripts/apply-tailscale-optimize.sh
+scripts/build-ipq807x-1g.sh
+
+# Docs + README
+docs/
+README.md
