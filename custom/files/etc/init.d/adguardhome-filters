@@ -1,0 +1,61 @@
+#!/bin/sh /etc/rc.common
+# Ensure AdGuard Home filter lists exist after boot.
+# work_dir must be on persistent storage (NOT /var -> /tmp).
+
+START=99
+STOP=10
+
+PERSIST_DIR="$(uci -q get adguardhome.config.work_dir)"
+[ -n "$PERSIST_DIR" ] || PERSIST_DIR="$(uci -q get adguardhome.config.workdir)"
+[ -n "$PERSIST_DIR" ] || PERSIST_DIR="/etc/adguardhome/work"
+
+FILTER_DIR="$PERSIST_DIR/data/filters"
+REFRESH="/etc/adguardhome/filter-refresh.sh"
+LOG="/tmp/agh_filter_boot.log"
+
+filters_ok() {
+	local n
+	[ -d "$FILTER_DIR" ] || return 1
+	n=$(find "$FILTER_DIR" -type f -name '*.txt' -size +1k 2>/dev/null | wc -l)
+	[ "$n" -ge 1 ]
+}
+
+boot() {
+	start
+}
+
+start() {
+	mkdir -m 0700 -p "$PERSIST_DIR"
+	chown -R adguardhome:adguardhome "$PERSIST_DIR" 2>/dev/null || true
+
+	local i=0
+	while [ $i -lt 36 ]; do
+		if pidof AdGuardHome >/dev/null 2>&1; then
+			if ping -c1 -W1 1.1.1.1 >/dev/null 2>&1 || ping -c1 -W1 8.8.8.8 >/dev/null 2>&1; then
+				break
+			fi
+		fi
+		i=$((i + 1))
+		sleep 5
+	done
+
+	if filters_ok; then
+		echo "$(date) filters already present" >>"$LOG"
+		return 0
+	fi
+
+	echo "$(date) filters missing/empty — running refresh" >>"$LOG"
+	[ -x "$REFRESH" ] || { echo "$(date) missing $REFRESH" >>"$LOG"; return 1; }
+	"$REFRESH" >>"$LOG" 2>&1
+
+	if filters_ok; then
+		echo "$(date) filters restored OK" >>"$LOG"
+		return 0
+	fi
+	echo "$(date) filters still empty after refresh" >>"$LOG"
+	return 1
+}
+
+stop() {
+	return 0
+}

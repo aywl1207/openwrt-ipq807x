@@ -52,6 +52,8 @@ check_file etc/sysctl.d/60-cloudflared-ping.conf
 check_file usr/lib/sqm/nss-zk.qos
 check_x etc/hotplug.d/iface/99-sqm-enabled
 check_x etc/adguardhome/filter-refresh.sh
+check_x etc/init.d/adguardhome-filters
+check_grep etc/config/adguardhome "work_dir.*/etc/adguardhome/work"
 
 check_grep etc/init.d/tailscale 'GOGC=10'
 check_grep etc/init.d/tailscale 'GOMEMLIMIT'
