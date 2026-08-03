@@ -16,7 +16,7 @@ Not locked to a single board: multi-profile images follow upstream device list; 
 | **DNS / filter** | [AdGuard Home](https://adguard.com/adguard-home/overview.html) — **primary DNS, auto-start** + `-s -w` / `gc=20` / `maxprocs=2` / 192 MiB soft limit |
 | **Tunnel** | [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/) — `-s -w` + `GOGC=10` / `GOMEMLIMIT=96MiB` (disabled until configured) |
 | **NSS offload** | `kmod-qca-nss-drv`, `kmod-qca-nss-ecm`, `kmod-qca-nss-crypto`, `nss-eip-firmware`, bridge/vlan/pppoe/qdisc managers; NSS FW **12.5** |
-| **SQM / QoS** | `sqm-scripts`, `sqm-scripts-nss`, `luci-app-sqm`, `kmod-sched-cake` (installed, **not** auto-enabled) |
+| **SQM / QoS** | **NSS** `nss-zk.qos` + `fq_codel` (`sqm-scripts-nss`, qdisc/igs); classic `qos-scripts` **off**; set rates then enable |
 | **UI** | LuCI + **Argon** theme (`luci-theme-argon`), Traditional Chinese (`zh_Hant` / `*-zh-tw` i18n packs) |
 | **Network utils** | `ddns-scripts-cloudflare`, `mdns-repeater` (br-lan only), `udp-broadcast-relay-redux`, `drill`, `ipset` |
 | **Memory** | `zram-swap` + `kmod-zram` — **256 MiB** + `lzo-rle` (not half-RAM default) |

@@ -9,7 +9,9 @@ Restored by `.github/workflows/sync_fork_with_customization.yaml` using `PRESERV
 | `custom/files/` | Rootfs overlay → copied to gitignored `files/` at build time |
 | `custom/files/etc/init.d/tailscale` | RAM-tuned init (`GOGC=10`, `GOMEMLIMIT=128MiB`) |
 | `custom/files/etc/uci-defaults/16_ensure_lan_dhcpv4` | Keep LAN DHCPv4 `server` when LAN is static |
-| `custom/files/etc/uci-defaults/98-component-optimize` | zram; **enable+start AdGuard Home** (primary DNS); cloudflared/SQM |
+| `custom/files/etc/config/sqm` + `usr/lib/sqm/nss-zk.qos` | NSS SQM template + fork-tuned shaper |
+| `custom/files/etc/uci-defaults/97-sqm-nss-optimize` | Pin `nss-zk.qos`; disable classic qos-scripts |
+| `custom/files/etc/uci-defaults/98-component-optimize` | zram; **enable+start AdGuard Home** (primary DNS); cloudflared |
 | `custom/files/etc/uci-defaults/99-qol_nss_tailscale` | Disable SW/HW flow offload; enable Tailscale |
 | `custom/files/etc/uci-defaults/99-qol_wireless` | Country/radios/SQM defaults (no DHCP) |
 | `custom/feeds.conf.append` | Appended to upstream `feeds.conf.default` after sync/build |

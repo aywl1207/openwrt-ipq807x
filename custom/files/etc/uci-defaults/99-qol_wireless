@@ -19,10 +19,6 @@ uci -q commit wireless 2>/dev/null || true
 	uci -q commit system
 }
 
-# SQM optional; leave disabled by default (user enables when needed)
-if [ -x /etc/init.d/sqm ]; then
-	/etc/init.d/sqm stop 2>/dev/null || true
-	/etc/init.d/sqm disable 2>/dev/null || true
-fi
+# SQM defaults / NSS script pinning live in 97-sqm-nss-optimize
 
 exit 0

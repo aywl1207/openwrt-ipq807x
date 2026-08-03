@@ -1,0 +1,36 @@
+
+# Smart Queue Management — NSS-optimized defaults for IPQ807x.
+# Script: nss-zk.qos (hardware nsstbl + nssfq_codel via qca-nss-drv-qdisc/igs)
+#
+# Instance stays DISABLED until you set real download/upload (kbit/s).
+# After setting rates: uci set sqm.wan.enabled='1'; /etc/init.d/sqm restart
+#
+# Do NOT use piece_of_cake.qos / layer_cake.qos on NSS builds (CPU-only cake).
+# Do NOT enable OpenWrt firewall software/hardware flow offloading with SQM.
+
+config queue 'wan'
+	option enabled '0'
+	option interface 'wan'
+	option download '0'
+	option upload '0'
+	option qdisc 'fq_codel'
+	option script 'nss-zk.qos'
+	option qdisc_advanced '1'
+	# NSS driver cannot classify/mark — DSCP squash is a no-op / wasted iptables
+	option squash_dscp '0'
+	option squash_ingress '0'
+	option ingress_ecn 'ECN'
+	# NSS codel path has limited ECN usefulness on egress; NOECN is fine
+	option egress_ecn 'NOECN'
+	option qdisc_really_really_advanced '1'
+	option itarget 'auto'
+	option etarget 'auto'
+	option eqdisc_opts 'interval 50ms'
+	option iqdisc_opts 'interval 50ms'
+	option linklayer 'none'
+	option overhead '18'
+	option linklayer_advanced '1'
+	option tcMTU '2047'
+	option tcTSIZE '128'
+	option tcMPU '0'
+	option linklayer_adaptation_mechanism 'default'

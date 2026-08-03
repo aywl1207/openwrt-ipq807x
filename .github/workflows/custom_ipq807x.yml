@@ -91,26 +91,34 @@ jobs:
           set -euo pipefail
           # Durable QoL lives under custom/files (materialized by optimize step):
           #   16_ensure_lan_dhcpv4     — LAN DHCPv4 only
-          #   98-component-optimize    — zram / AGH / cloudflared / SQM defaults
+          #   97-sqm-nss-optimize      — nss-zk.qos pin; classic qos off
+          #   98-component-optimize    — zram / AGH / cloudflared
           #   99-qol_nss_tailscale     — ECM/NSS offload + Tailscale enable
           #   99-qol_wireless          — country / radios
           #   etc/init.d/{tailscale,cloudflared} — GOGC / GOMEMLIMIT
-          #   etc/config/{adguardhome,cloudflared,mdns_repeater}
+          #   etc/config/{adguardhome,cloudflared,mdns_repeater,sqm}
+          #   usr/lib/sqm/nss-zk.qos   — fork-tuned NSS shaper
           find files/etc/init.d files/etc/uci-defaults -type f -exec chmod +x {} \; 2>/dev/null || true
           test -x files/etc/uci-defaults/16_ensure_lan_dhcpv4
+          test -x files/etc/uci-defaults/97-sqm-nss-optimize
           test -x files/etc/uci-defaults/98-component-optimize
           test -x files/etc/uci-defaults/99-qol_nss_tailscale
           test -x files/etc/uci-defaults/99-qol_wireless
           test -x files/etc/init.d/tailscale
           test -x files/etc/init.d/cloudflared
+          test -f files/usr/lib/sqm/nss-zk.qos
+          test -f files/etc/config/sqm
           grep -q 'GOGC=10' files/etc/init.d/tailscale
           grep -q 'GOGC=10' files/etc/init.d/cloudflared
           grep -q "option gc '20'" files/etc/config/adguardhome
+          grep -q 'nss-zk.qos' files/etc/config/sqm
+          grep -q 'interval 50ms' files/usr/lib/sqm/nss-zk.qos
           # Never let first-boot scripts rewrite WAN or invent DHCP policy beyond 16_
           ! grep -qE 'network\.wan|dhcp\.wan' files/etc/uci-defaults/* 2>/dev/null || true
           ! grep -qE 'dhcp\.|network\.lan' files/etc/uci-defaults/99-qol_wireless
           ! grep -qE 'dhcp\.|network\.lan' files/etc/uci-defaults/99-qol_nss_tailscale
           ! grep -qE 'dhcp\.|network\.lan' files/etc/uci-defaults/98-component-optimize
+          ! grep -qE 'dhcp\.|network\.lan' files/etc/uci-defaults/97-sqm-nss-optimize
 
 
   download:

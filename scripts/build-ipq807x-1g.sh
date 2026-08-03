@@ -123,6 +123,8 @@ check_y CONFIG_PACKAGE_cloudflared
 check_y CONFIG_PACKAGE_luci-theme-argon
 check_y CONFIG_PACKAGE_zram-swap
 check_y CONFIG_PACKAGE_sqm-scripts-nss
+check_y CONFIG_PACKAGE_kmod-qca-nss-drv-qdisc
+check_y CONFIG_PACKAGE_kmod-qca-nss-drv-igs
 if [[ -n "${DEVICE}" ]]; then
   check_y "CONFIG_TARGET_qualcommax_ipq807x_DEVICE_${DEVICE}"
 fi

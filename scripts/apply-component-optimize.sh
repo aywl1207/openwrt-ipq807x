@@ -138,6 +138,11 @@ verify_overlays() {
   check_grep files/etc/uci-defaults/98-component-optimize 'zram_size_mb'
   # AdGuard Home is primary DNS — must be enabled on first boot
   check_grep files/etc/uci-defaults/98-component-optimize 'adguardhome enable'
+  # NSS SQM path
+  check_grep files/etc/config/sqm 'nss-zk.qos'
+  check_grep files/usr/lib/sqm/nss-zk.qos 'interval 50ms'
+  check_grep files/usr/lib/sqm/nss-zk.qos 'leaving qca_nss_qdisc'
+  check_grep files/etc/uci-defaults/97-sqm-nss-optimize 'nss-zk.qos'
   [[ "${fail}" -eq 0 ]] || { echo "ERROR: overlay verification failed" >&2; exit 1; }
 }
 

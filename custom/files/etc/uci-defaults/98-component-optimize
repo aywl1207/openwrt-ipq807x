@@ -35,11 +35,7 @@ if [ -n "$(uci -q get cloudflared.config)" ] || [ -f /etc/config/cloudflared ]; 
 	uci -q commit cloudflared
 fi
 
-# --- SQM: leave package installed but not auto-shaping until configured -----
-if [ -x /etc/init.d/sqm ]; then
-	/etc/init.d/sqm stop 2>/dev/null || true
-	/etc/init.d/sqm disable 2>/dev/null || true
-fi
+# --- SQM / QoS: handled by 97-sqm-nss-optimize (nss-zk.qos, no classic qos) ---
 
 # --- haveged: already tiny; ensure enabled for early entropy -----------------
 [ -x /etc/init.d/haveged ] && /etc/init.d/haveged enable 2>/dev/null || true

@@ -1,0 +1,17 @@
+NSS HW-accelerated SQM for IPQ807x (this fork).
+
+Requires: kmod-qca-nss-drv-qdisc, kmod-qca-nss-drv-igs, sqm-scripts-nss.
+Discipline: nssfq_codel only (cake/simple.qos software paths are NOT used).
+
+Recommended LuCI settings:
+  - Queue discipline: fq_codel
+  - Queue setup script: nss-zk.qos
+  - Link rates: ~90–95% of real WAN throughput (kbit/s)
+  - Advanced (optional): eqdisc_opts / iqdisc_opts → "interval 50ms"
+  - Soft offload (firewall flow_offloading / flow_offloading_hw): OFF
+    (ECM + NSS own acceleration; SW/HW flow offload fights SQM)
+
+Fork defaults inside this script:
+  - codel interval 50ms if not overridden
+  - queue limit floor ≥400 packets (higher on multi-hundred Mbps)
+  - does not rmmod NSS modules on stop (safer with ECM)
