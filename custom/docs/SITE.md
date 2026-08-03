@@ -54,20 +54,21 @@ net.ipv4.ping_group_range = 0 65535
 uci set adguardhome.config.gc='20'
 uci set adguardhome.config.maxprocs='2'
 uci set adguardhome.config.memlimit='201326592'   # 192 MiB, bytes
-# MUST be on overlay — OpenWrt /var is a symlink to /tmp (wiped every boot)
-uci set adguardhome.config.work_dir='/etc/adguardhome/work'
+# Intentional tmpfs workdir (OpenWrt /var -> /tmp): less flash wear
+uci set adguardhome.config.work_dir='/var/lib/adguardhome'
 uci commit adguardhome
 /etc/init.d/adguardhome enable
-/etc/init.d/adguardhome-filters enable   # boot safety net if lists missing
+/etc/init.d/adguardhome-filters enable   # EVERY boot: re-download filter lists
 /etc/init.d/adguardhome restart
 ```
 
 - Use **package UCI** for `GOGC` / `GOMEMLIMIT` / `GOMAXPROCS`.  
   **Never** `sed` `/etc/init.d/adguardhome` on boot.
-- **`work_dir` must NOT be under `/var/lib`** — on OpenWrt `/var` → `/tmp` (tmpfs), so filters vanish after reboot.
-- Use **`/etc/adguardhome/work`** (overlay). Optional init `adguardhome-filters` re-downloads lists if empty after boot.
+- **`work_dir=/var/lib/adguardhome`** sits on tmpfs by design (saves flash; querylog/stats do not thrash overlay).
+- **Must** enable `adguardhome-filters` (START=99): waits for AGH + WAN, then runs `filter-refresh.sh` on **every** boot.
+- Until boot refresh finishes, blocking may be incomplete for a short window.
 
-### Filter refresh (cron + boot safety net, secrets on device)
+### Filter refresh (boot every time + daily cron, secrets on device)
 
 ```bash
 # Example — store auth outside the script if possible
@@ -75,9 +76,9 @@ uci commit adguardhome
 #   AGH_URL=http://127.0.0.1:8081
 #   AGH_AUTH_HEADER='Authorization: Basic <base64 user:pass>'
 
+# boot: /etc/init.d/adguardhome-filters (START=99) — always refresh
 # cron (root), e.g. daily:
 # 15 4 * * * /etc/adguardhome/filter-refresh.sh
-# boot: /etc/init.d/adguardhome-filters (START=99) if filter files missing
 ```
 
 Do **not** run `echo 3 > /proc/sys/vm/drop_caches` on a 1 GB router as routine maintenance.

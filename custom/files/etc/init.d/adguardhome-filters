@@ -1,35 +1,28 @@
 #!/bin/sh /etc/rc.common
-# Ensure AdGuard Home filter lists exist after boot.
-# work_dir must be on persistent storage (NOT /var -> /tmp).
+# AdGuard Home filter lists with tmpfs work_dir (/var -> /tmp):
+# always refresh after boot once AGH + WAN are up.
 
 START=99
 STOP=10
 
-PERSIST_DIR="$(uci -q get adguardhome.config.work_dir)"
-[ -n "$PERSIST_DIR" ] || PERSIST_DIR="$(uci -q get adguardhome.config.workdir)"
-[ -n "$PERSIST_DIR" ] || PERSIST_DIR="/etc/adguardhome/work"
+WORK_DIR="$(uci -q get adguardhome.config.work_dir)"
+[ -n "$WORK_DIR" ] || WORK_DIR="$(uci -q get adguardhome.config.workdir)"
+[ -n "$WORK_DIR" ] || WORK_DIR="/var/lib/adguardhome"
 
-FILTER_DIR="$PERSIST_DIR/data/filters"
 REFRESH="/etc/adguardhome/filter-refresh.sh"
 LOG="/tmp/agh_filter_boot.log"
-
-filters_ok() {
-	local n
-	[ -d "$FILTER_DIR" ] || return 1
-	n=$(find "$FILTER_DIR" -type f -name '*.txt' -size +1k 2>/dev/null | wc -l)
-	[ "$n" -ge 1 ]
-}
 
 boot() {
 	start
 }
 
 start() {
-	mkdir -m 0700 -p "$PERSIST_DIR"
-	chown -R adguardhome:adguardhome "$PERSIST_DIR" 2>/dev/null || true
+	mkdir -m 0700 -p "$WORK_DIR"
+	chown -R adguardhome:adguardhome "$WORK_DIR" 2>/dev/null || true
 
+	# Wait for AdGuardHome + internet (max ~4 min)
 	local i=0
-	while [ $i -lt 36 ]; do
+	while [ $i -lt 48 ]; do
 		if pidof AdGuardHome >/dev/null 2>&1; then
 			if ping -c1 -W1 1.1.1.1 >/dev/null 2>&1 || ping -c1 -W1 8.8.8.8 >/dev/null 2>&1; then
 				break
@@ -39,21 +32,23 @@ start() {
 		sleep 5
 	done
 
-	if filters_ok; then
-		echo "$(date) filters already present" >>"$LOG"
-		return 0
+	if ! pidof AdGuardHome >/dev/null 2>&1; then
+		echo "$(date) AGH not running — skip filter refresh" >>"$LOG"
+		return 1
 	fi
 
-	echo "$(date) filters missing/empty — running refresh" >>"$LOG"
-	[ -x "$REFRESH" ] || { echo "$(date) missing $REFRESH" >>"$LOG"; return 1; }
+	echo "$(date) boot filter refresh (tmpfs work_dir=$WORK_DIR)" >>"$LOG"
+	if [ ! -x "$REFRESH" ]; then
+		echo "$(date) missing $REFRESH" >>"$LOG"
+		return 1
+	fi
+
 	"$REFRESH" >>"$LOG" 2>&1
-
-	if filters_ok; then
-		echo "$(date) filters restored OK" >>"$LOG"
-		return 0
-	fi
-	echo "$(date) filters still empty after refresh" >>"$LOG"
-	return 1
+	local ec=$?
+	local n
+	n=$(find "$WORK_DIR/data/filters" -type f -name '*.txt' -size +1k 2>/dev/null | wc -l)
+	echo "$(date) refresh exit=$ec filter_files=$n" >>"$LOG"
+	return $ec
 }
 
 stop() {
