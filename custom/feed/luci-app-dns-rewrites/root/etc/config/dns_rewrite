@@ -1,2 +1,3 @@
 config dns_rewrite 'globals'
 	option description 'Local DNS rewrite list'
+	# option upstream '127.0.0.1#5053'

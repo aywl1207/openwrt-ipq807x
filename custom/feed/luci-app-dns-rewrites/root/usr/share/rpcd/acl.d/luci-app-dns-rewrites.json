@@ -2,14 +2,14 @@
 	"luci-app-dns-rewrites": {
 		"description": "Grant access to local DNS rewrite configuration",
 		"read": {
-			"uci": [ "dns_rewrite", "aykc_dns", "dhcp" ],
+			"uci": [ "dns_rewrite" ],
 			"file": {
 				"/etc/dnsmasq.d/10-dns-rewrites.conf": [ "read" ],
 				"/usr/sbin/dns-rewrite-apply": [ "exec" ]
 			}
 		},
 		"write": {
-			"uci": [ "dns_rewrite", "aykc_dns", "dhcp" ],
+			"uci": [ "dns_rewrite" ],
 			"file": {
 				"/usr/sbin/dns-rewrite-apply": [ "exec" ]
 			}

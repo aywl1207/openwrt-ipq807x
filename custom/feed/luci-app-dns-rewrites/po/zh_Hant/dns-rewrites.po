@@ -1,9 +1,9 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: luci-app-dns-rewrites\n"
+"Project-Id-Version: luci-app-dns-rewrites 1.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-06 18:00+0800\n"
-"PO-Revision-Date: 2026-08-06 18:00+0800\n"
+"POT-Creation-Date: 2026-08-06 20:00+0800\n"
+"PO-Revision-Date: 2026-08-06 20:00+0800\n"
 "Last-Translator: \n"
 "Language-Team: Chinese (Traditional)\n"
 "Language: zh_Hant\n"
@@ -21,8 +21,8 @@ msgstr "管理路由器 DNS 解析器（dnsmasq）的本機名稱覆寫。"
 msgid "<strong>Private IP</strong> — answer with a fixed IPv4 address. The name is treated as local (no public AAAA mixed in). Use for hosts on your LAN, NAS, or other internal addresses."
 msgstr "<strong>私人 IP</strong> — 以固定 IPv4 回應。該名稱視為本機（不會混入公網 AAAA）。適用於區網主機、NAS 或其他內部位址。"
 
-msgid "<strong>Public</strong> — resolve via the router upstream DNS (typically local DNS-over-HTTPS / your filtering resolver on 127.0.0.1#5053). Use when a name must follow public DNS (CDN, tunnel, external status page), especially if a private wildcard would otherwise catch it."
-msgstr "<strong>公開</strong> — 經路由器上游 DNS 解析（通常為本機 DNS-over-HTTPS／過濾解析器，127.0.0.1#5053）。適用於必須跟隨公網 DNS 的名稱（CDN、隧道、外部狀態頁），尤其是會被私人萬用字元規則攔截時。"
+msgid "<strong>Public</strong> — resolve via the configured upstream (default: https-dns-proxy listen address, usually 127.0.0.1#5053). Use when a name must follow public DNS, especially if a private wildcard would otherwise catch it."
+msgstr "<strong>公開</strong> — 經已設定之上游解析（預設為 https-dns-proxy 監聽位址，通常 127.0.0.1#5053）。適用於必須跟隨公網 DNS 的名稱，尤其是會被私人萬用字元攔截時。"
 
 msgid "Domain patterns:"
 msgstr "網域格式："
@@ -39,8 +39,23 @@ msgstr "dnsmasq 對該網域樹的 zone 寫法"
 msgid "More specific rows override wildcards (for example a single host IP wins over a wildcard)."
 msgstr "較具體的列會覆蓋萬用字元（例如單一主機 IP 優先於萬用字元）。"
 
-msgid "Save &amp; Apply writes configuration and restarts <strong>dnsmasq only</strong> (does not reload Wi-Fi)."
-msgstr "儲存並套用會寫入設定並<strong>只重新啟動 dnsmasq</strong>（不會重載 Wi-Fi）。"
+msgid "Save &amp; Apply writes configuration and restarts <strong>dnsmasq only</strong> when the generated file changes (does not reload Wi-Fi)."
+msgstr "儲存並套用會寫入設定，且<strong>僅在產生檔變更時重啟 dnsmasq</strong>（不會重載 Wi-Fi）。"
+
+msgid "Settings"
+msgstr "設定"
+
+msgid "Upstream for Public rules"
+msgstr "公開規則之上游"
+
+msgid "Leave empty to use https-dns-proxy listen address, then 127.0.0.1#5053. Format: host#port"
+msgstr "留空則使用 https-dns-proxy 監聽位址，再退回 127.0.0.1#5053。格式：主機#埠"
+
+msgid "Use host#port (e.g. 127.0.0.1#5053)"
+msgstr "請用 主機#埠（例如 127.0.0.1#5053）"
+
+msgid "Description"
+msgstr "說明"
 
 msgid "Rules"
 msgstr "規則"
@@ -54,6 +69,9 @@ msgstr "網域"
 msgid "Domain is required"
 msgstr "必須填寫網域"
 
+msgid "Invalid domain (use host.example.com, *.example.com, or .example.com)"
+msgstr "網域無效（請用 host.example.com、*.example.com 或 .example.com）"
+
 msgid "Type"
 msgstr "類型"
 
@@ -66,8 +84,29 @@ msgstr "公開（上游 DNS）"
 msgid "IPv4 address"
 msgstr "IPv4 位址"
 
-msgid "DNS rewrites applied; dnsmasq restarted."
-msgstr "已套用 DNS 改寫；dnsmasq 已重新啟動。"
+msgid "IPv4 address is required for Private IP rules"
+msgstr "私人 IP 規則必須填寫 IPv4 位址"
+
+msgid "Comment"
+msgstr "備註"
+
+msgid "optional note"
+msgstr "選填說明"
+
+msgid "Generated dnsmasq config"
+msgstr "產生的 dnsmasq 設定"
+
+msgid "Read-only preview of %s after the last successful apply."
+msgstr "上次成功套用後的唯讀預覽：%s"
+
+msgid "(empty or not applied yet — Save & Apply to generate)"
+msgstr "（空白或尚未套用 — 請按「儲存並套用」產生）"
+
+msgid "DNS rewrites applied; dnsmasq restarted if needed."
+msgstr "已套用 DNS 改寫；必要時已重啟 dnsmasq。"
+
+msgid "DNS rewrites unchanged; dnsmasq not restarted."
+msgstr "DNS 改寫無變更；未重啟 dnsmasq。"
 
 msgid "Error: %s"
 msgstr "錯誤：%s"

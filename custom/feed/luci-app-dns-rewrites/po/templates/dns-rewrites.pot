@@ -1,6 +1,5 @@
 msgid ""
-msgstr ""
-"Content-Type: text/plain; charset=UTF-8\n"
+msgstr "Content-Type: text/plain; charset=UTF-8"
 
 msgid "DNS Rewrites"
 msgstr ""
@@ -11,7 +10,7 @@ msgstr ""
 msgid "<strong>Private IP</strong> — answer with a fixed IPv4 address. The name is treated as local (no public AAAA mixed in). Use for hosts on your LAN, NAS, or other internal addresses."
 msgstr ""
 
-msgid "<strong>Public</strong> — resolve via the router upstream DNS (typically local DNS-over-HTTPS / your filtering resolver on 127.0.0.1#5053). Use when a name must follow public DNS (CDN, tunnel, external status page), especially if a private wildcard would otherwise catch it."
+msgid "<strong>Public</strong> — resolve via the configured upstream (default: https-dns-proxy listen address, usually 127.0.0.1#5053). Use when a name must follow public DNS, especially if a private wildcard would otherwise catch it."
 msgstr ""
 
 msgid "Domain patterns:"
@@ -29,7 +28,22 @@ msgstr ""
 msgid "More specific rows override wildcards (for example a single host IP wins over a wildcard)."
 msgstr ""
 
-msgid "Save &amp; Apply writes configuration and restarts <strong>dnsmasq only</strong> (does not reload Wi-Fi)."
+msgid "Save &amp; Apply writes configuration and restarts <strong>dnsmasq only</strong> when the generated file changes (does not reload Wi-Fi)."
+msgstr ""
+
+msgid "Settings"
+msgstr ""
+
+msgid "Upstream for Public rules"
+msgstr ""
+
+msgid "Leave empty to use https-dns-proxy listen address, then 127.0.0.1#5053. Format: host#port"
+msgstr ""
+
+msgid "Use host#port (e.g. 127.0.0.1#5053)"
+msgstr ""
+
+msgid "Description"
 msgstr ""
 
 msgid "Rules"
@@ -44,6 +58,9 @@ msgstr ""
 msgid "Domain is required"
 msgstr ""
 
+msgid "Invalid domain (use host.example.com, *.example.com, or .example.com)"
+msgstr ""
+
 msgid "Type"
 msgstr ""
 
@@ -56,7 +73,28 @@ msgstr ""
 msgid "IPv4 address"
 msgstr ""
 
-msgid "DNS rewrites applied; dnsmasq restarted."
+msgid "IPv4 address is required for Private IP rules"
+msgstr ""
+
+msgid "Comment"
+msgstr ""
+
+msgid "optional note"
+msgstr ""
+
+msgid "Generated dnsmasq config"
+msgstr ""
+
+msgid "Read-only preview of %s after the last successful apply."
+msgstr ""
+
+msgid "(empty or not applied yet — Save & Apply to generate)"
+msgstr ""
+
+msgid "DNS rewrites applied; dnsmasq restarted if needed."
+msgstr ""
+
+msgid "DNS rewrites unchanged; dnsmasq not restarted."
 msgstr ""
 
 msgid "Error: %s"

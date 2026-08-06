@@ -8,12 +8,35 @@
 | **Feed registration** | `custom/feeds.conf.append` → `src-link custom_feed custom/feed` |
 | **Image selection** | seed: `CONFIG_PACKAGE_luci-app-dns-rewrites=y` |
 | **i18n** | seed: `CONFIG_PACKAGE_luci-i18n-dns-rewrites-zh-tw=y` |
+| **Version** | `PKG_VERSION` in package `Makefile` |
 
 `prepare.sh` appends the feed and runs `./scripts/feeds update/install`
 (including explicit `feeds install luci-app-dns-rewrites`).
 
 **Seed** only *selects* packages; the **feed** supplies the source.
 Do not put package trees under `custom/package` / `package/custom`.
+
+## Behaviour
+
+| Type | dnsmasq |
+|------|---------|
+| Private IP | `address=` + `local=` |
+| Public | `server=/name/<upstream>` |
+
+**Upstream** for public rules (first match):
+
+1. env `DNS_REWRITE_DOH`
+2. UCI `dns_rewrite.globals.upstream`
+3. `https-dns-proxy` listen_addr#listen_port
+4. `127.0.0.1#5053`
+
+Apply is soft on `dhcp` UCI: only sets `confdir=/etc/dnsmasq.d` when **unset**.
+It does **not** clear `server` / `address` / `cname`. dnsmasq restarts only when
+the generated conf (or confdir) changes.
+
+`/etc/config/dns_rewrite` is a **conffile** (survives opkg upgrade).
+
+Legacy `/etc/config/aykc_dns` is copied once to `dns_rewrite` if missing.
 
 ## Extract as standalone feed repo
 
@@ -22,13 +45,6 @@ Do not put package trees under `custom/package` / `package/custom`.
 # feeds.conf:
 src-link dnsrw /path/to/parent
 ```
-
-## Types
-
-| Type | dnsmasq |
-|------|---------|
-| Private IP | `address=` + `local=` |
-| Public | `server=/name/127.0.0.1#5053` |
 
 ## UI language
 

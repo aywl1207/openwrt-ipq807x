@@ -5,7 +5,7 @@ START=18
 
 start() {
 	[ -x /usr/sbin/dns-rewrite-apply ] || return 0
-	[ -f /etc/config/dns_rewrite ] || [ -f /etc/config/aykc_dns ] || return 0
+	[ -f /etc/config/dns_rewrite ] || return 0
 	/usr/sbin/dns-rewrite-apply --no-restart >/dev/null 2>&1 || true
 }
 
@@ -15,4 +15,8 @@ boot() {
 
 stop() {
 	:
+}
+
+reload() {
+	start
 }
