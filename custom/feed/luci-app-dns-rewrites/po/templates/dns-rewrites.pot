@@ -4,43 +4,43 @@ msgstr "Content-Type: text/plain; charset=UTF-8"
 msgid "DNS Rewrites"
 msgstr ""
 
-msgid "Manage local name overrides for the router DNS resolver (dnsmasq)."
+msgid "Override DNS names on this router (dnsmasq)."
 msgstr ""
 
-msgid "<strong>Private IP</strong> — answer with a fixed IPv4 address. The name is treated as local (no public AAAA mixed in). Use for hosts on your LAN, NAS, or other internal addresses."
+msgid "<strong>Private IP</strong>: always return a fixed IPv4 (LAN / NAS). Local only — no public AAAA."
 msgstr ""
 
-msgid "<strong>Public</strong> — resolve via the configured upstream (default: https-dns-proxy listen address, usually 127.0.0.1#5053). Use when a name must follow public DNS, especially if a private wildcard would otherwise catch it."
+msgid "<strong>Public</strong>: look up via upstream DNS (default local DoH 127.0.0.1#5053). Use when a private wildcard would wrongly catch the name."
 msgstr ""
 
-msgid "Domain patterns:"
+msgid "Name formats:"
 msgstr ""
 
-msgid "single name"
+msgid "one host"
 msgstr ""
 
-msgid "all subdomains (not the zone apex)"
+msgid "all subdomains (not the apex name)"
 msgstr ""
 
-msgid "dnsmasq zone form for that domain tree"
+msgid "whole domain tree"
 msgstr ""
 
-msgid "More specific rows override wildcards (for example a single host IP wins over a wildcard)."
+msgid "More specific rules win over wildcards."
 msgstr ""
 
-msgid "Save &amp; Apply writes configuration and restarts <strong>dnsmasq only</strong> when the generated file changes (does not reload Wi-Fi)."
+msgid "Save &amp; Apply updates the config. dnsmasq restarts only if the file changed (Wi-Fi is not touched)."
 msgstr ""
 
 msgid "Settings"
 msgstr ""
 
-msgid "Upstream for Public rules"
+msgid "Public upstream"
 msgstr ""
 
-msgid "Leave empty to use https-dns-proxy listen address, then 127.0.0.1#5053. Format: host#port"
+msgid "Optional. Empty = https-dns-proxy port, else 127.0.0.1#5053. Format host#port."
 msgstr ""
 
-msgid "Use host#port (e.g. 127.0.0.1#5053)"
+msgid "Invalid format (example: 127.0.0.1#5053)"
 msgstr ""
 
 msgid "Description"
@@ -67,34 +67,34 @@ msgstr ""
 msgid "Private IP"
 msgstr ""
 
-msgid "Public (upstream DNS)"
+msgid "Public"
 msgstr ""
 
-msgid "IPv4 address"
+msgid "IPv4"
 msgstr ""
 
-msgid "IPv4 address is required for Private IP rules"
+msgid "IPv4 is required for Private IP"
 msgstr ""
 
-msgid "Comment"
+msgid "Note"
 msgstr ""
 
-msgid "optional note"
+msgid "optional"
 msgstr ""
 
-msgid "Generated dnsmasq config"
+msgid "Generated config"
 msgstr ""
 
-msgid "Read-only preview of %s after the last successful apply."
+msgid "Preview of %s"
 msgstr ""
 
-msgid "(empty or not applied yet — Save & Apply to generate)"
+msgid "(not generated yet — use Save & Apply)"
 msgstr ""
 
-msgid "DNS rewrites applied; dnsmasq restarted if needed."
+msgid "Applied; dnsmasq restarted if needed."
 msgstr ""
 
-msgid "DNS rewrites unchanged; dnsmasq not restarted."
+msgid "No change; dnsmasq not restarted."
 msgstr ""
 
 msgid "Error: %s"

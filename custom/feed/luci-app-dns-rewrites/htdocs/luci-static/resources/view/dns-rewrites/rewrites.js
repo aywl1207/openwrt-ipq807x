@@ -29,7 +29,7 @@ function validatePrivateIp(section_id, value) {
 	if (type !== 'private')
 		return true;
 	if (!value || !String(value).trim().length)
-		return _('IPv4 address is required for Private IP rules');
+		return _('IPv4 is required for Private IP');
 	return true;
 }
 
@@ -42,22 +42,23 @@ return view.extend({
 	},
 
 	render(previewText) {
+		/* Short copy: long technical paragraphs look awkward after zh-tw translation. */
 		const desc =
-			_('Manage local name overrides for the router DNS resolver (dnsmasq).') +
+			_('Override DNS names on this router (dnsmasq).') +
 			'<br/><br/>' +
 			'<ul>' +
-			'<li>' + _('<strong>Private IP</strong> — answer with a fixed IPv4 address. The name is treated as local (no public AAAA mixed in). Use for hosts on your LAN, NAS, or other internal addresses.') + '</li>' +
-			'<li>' + _('<strong>Public</strong> — resolve via the configured upstream (default: https-dns-proxy listen address, usually 127.0.0.1#5053). Use when a name must follow public DNS, especially if a private wildcard would otherwise catch it.') + '</li>' +
+			'<li>' + _('<strong>Private IP</strong>: always return a fixed IPv4 (LAN / NAS). Local only — no public AAAA.') + '</li>' +
+			'<li>' + _('<strong>Public</strong>: look up via upstream DNS (default local DoH 127.0.0.1#5053). Use when a private wildcard would wrongly catch the name.') + '</li>' +
 			'</ul>' +
-			_('Domain patterns:') +
+			_('Name formats:') +
 			'<ul>' +
-			'<li><code>host.example.com</code> — ' + _('single name') + '</li>' +
-			'<li><code>*.example.com</code> — ' + _('all subdomains (not the zone apex)') + '</li>' +
-			'<li><code>.example.com</code> — ' + _('dnsmasq zone form for that domain tree') + '</li>' +
+			'<li><code>host.example.com</code> — ' + _('one host') + '</li>' +
+			'<li><code>*.example.com</code> — ' + _('all subdomains (not the apex name)') + '</li>' +
+			'<li><code>.example.com</code> — ' + _('whole domain tree') + '</li>' +
 			'</ul>' +
-			_('More specific rows override wildcards (for example a single host IP wins over a wildcard).') +
+			_('More specific rules win over wildcards.') +
 			'<br/><br/>' +
-			_('Save &amp; Apply writes configuration and restarts <strong>dnsmasq only</strong> when the generated file changes (does not reload Wi-Fi).');
+			_('Save &amp; Apply updates the config. dnsmasq restarts only if the file changed (Wi-Fi is not touched).');
 
 		const m = new form.Map(CFG, _('DNS Rewrites'), desc);
 
@@ -67,10 +68,10 @@ return view.extend({
 		g.anonymous = false;
 
 		let o;
-		o = g.option(form.Value, 'upstream', _('Upstream for Public rules'));
+		o = g.option(form.Value, 'upstream', _('Public upstream'));
 		o.placeholder = '127.0.0.1#5053';
 		o.rmempty = true;
-		o.description = _('Leave empty to use https-dns-proxy listen address, then 127.0.0.1#5053. Format: host#port');
+		o.description = _('Optional. Empty = https-dns-proxy port, else 127.0.0.1#5053. Format host#port.');
 		o.validate = function(section_id, value) {
 			if (!value || !String(value).trim().length)
 				return true;
@@ -78,7 +79,7 @@ return view.extend({
 			/* dnsmasq-style host#port (hash, not colon) */
 			if (!/^[0-9a-zA-Z._\[\]:-]+#\d{1,5}$/.test(v) &&
 			    !/^[0-9a-zA-Z._\[\]:-]+$/.test(v))
-				return _('Use host#port (e.g. 127.0.0.1#5053)');
+				return _('Invalid format (example: 127.0.0.1#5053)');
 			return true;
 		};
 
@@ -109,12 +110,12 @@ return view.extend({
 
 		o = s.option(form.ListValue, 'type', _('Type'));
 		o.value('private', _('Private IP'));
-		o.value('public', _('Public (upstream DNS)'));
+		o.value('public', _('Public'));
 		o.rmempty = false;
 		o.editable = true;
 		o.default = 'private';
 
-		o = s.option(form.Value, 'ip', _('IPv4 address'));
+		o = s.option(form.Value, 'ip', _('IPv4'));
 		o.datatype = 'ip4addr';
 		o.placeholder = '192.168.1.10';
 		o.depends('type', 'private');
@@ -122,10 +123,10 @@ return view.extend({
 		o.rmempty = true;
 		o.validate = validatePrivateIp;
 
-		o = s.option(form.Value, 'comment', _('Comment'));
+		o = s.option(form.Value, 'comment', _('Note'));
 		o.rmempty = true;
 		o.editable = true;
-		o.placeholder = _('optional note');
+		o.placeholder = _('optional');
 		o.modalonly = false;
 
 		return m.render().then((nodes) => {
@@ -133,12 +134,12 @@ return view.extend({
 				'style': 'max-height:20em;overflow:auto;white-space:pre-wrap;font-size:12px;padding:0.75em;background:var(--background-color-high,#f6f6f6);border:1px solid var(--border-color-medium,#ccc);border-radius:4px;'
 			}, previewText && String(previewText).length
 				? String(previewText)
-				: _('(empty or not applied yet — Save & Apply to generate)'));
+				: _('(not generated yet — use Save & Apply)'));
 
 			nodes.appendChild(E('div', { 'class': 'cbi-section', 'style': 'margin-top:1.5em' }, [
-				E('h3', {}, _('Generated dnsmasq config')),
+				E('h3', {}, _('Generated config')),
 				E('p', { 'class': 'cbi-section-descr' },
-					_('Read-only preview of %s after the last successful apply.').format(CONF_PREVIEW)),
+					_('Preview of %s').format(CONF_PREVIEW)),
 				pre
 			]));
 
@@ -153,8 +154,8 @@ return view.extend({
 					throw new Error((res.stderr || res.stdout || 'apply failed').toString());
 				const out = (res.stdout || '').toString();
 				const msg = out.indexOf('unchanged') !== -1
-					? _('DNS rewrites unchanged; dnsmasq not restarted.')
-					: _('DNS rewrites applied; dnsmasq restarted if needed.');
+					? _('No change; dnsmasq not restarted.')
+					: _('Applied; dnsmasq restarted if needed.');
 				ui.addNotification(null, E('p', msg), 'info');
 				/* refresh preview without full navigation */
 				return L.resolveDefault(fs.read(CONF_PREVIEW), '').then((text) => {
@@ -162,7 +163,7 @@ return view.extend({
 					if (pre)
 						pre.textContent = text && String(text).length
 							? String(text)
-							: _('(empty or not applied yet — Save & Apply to generate)');
+							: _('(not generated yet — use Save & Apply)');
 				});
 			});
 		}).catch((e) => {
