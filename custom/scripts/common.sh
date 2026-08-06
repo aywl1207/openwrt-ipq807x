@@ -84,14 +84,9 @@ append_feeds_conf() {
   {
     cat "${tmp}"
     printf '\n%s\n' "${FEEDS_MARKER_BEGIN}"
-    # Rewrite relative custom_feed path → absolute (required for src-link)
-    sed -e '/./,$!d' \
-        -e "s|^src-link[[:space:]]\\+custom_feed[[:space:]]\\+custom/feed.*|src-link custom_feed ${feed_abs}|" \
-        "${FEEDS_APPEND}"
-    # Ensure line exists even if append file only has comments
-    if ! grep -qE '^src-link[[:space:]]+custom_feed[[:space:]]' "${FEEDS_APPEND}" 2>/dev/null; then
-      printf 'src-link custom_feed %s\n' "${feed_abs}"
-    fi
+    # Comments from append file; always emit absolute src-link last
+    sed -e '/./,$!d' -e '/^src-link[[:space:]]/d' "${FEEDS_APPEND}"
+    printf 'src-link custom_feed %s\n' "${feed_abs}"
     printf '%s\n' "${FEEDS_MARKER_END}"
   } > "${feeds}"
   rm -f "${tmp}"
