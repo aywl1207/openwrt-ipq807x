@@ -404,9 +404,8 @@ sqm_stop() {
     $TC qdisc del dev $IFACE root
   fi
 
-  if tc qdisc show dev $IFACE 2>&1 | awk '$2=="ingress"{print}' | grep -q .; then
-    # DISABLED (nssmirred panic): $TC qdisc del dev $IFACE ingress
-  fi
+  # Do not delete ingress/nssmirred filters on stop — panics act_nssmirred on IPQ807x.
+  # if tc ... ingress; then tc qdisc del ... ingress; fi
 
   if [ -r /sys/devices/virtual/net/$DEV ]; then
     tc qdisc list dev $DEV | awk '$1=="qdisc"&&$4=="parent"{print $5}' | sort -t: -k1nr,2nr | while read -r parent; do
