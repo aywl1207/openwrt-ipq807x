@@ -296,7 +296,7 @@ ingress() {
   # If there's no queue limit configured, calculate one
   [ -z "$ILIMIT" ] && ILIMIT=$(calc_limit ${DOWNLINK} ${MTU} ${MAXQLIMIT_MS})
 
-  $IP link add name $DEV type ifb
+  $IP link show $DEV >/dev/null 2>&1 || $IP link add name $DEV type ifb
   $IP link set dev $DEV up
 
   $TC qdisc add dev $IFACE handle ffff: ingress
@@ -405,7 +405,7 @@ sqm_stop() {
   fi
 
   if tc qdisc show dev $IFACE 2>&1 | awk '$2=="ingress"{print}' | grep -q .; then
-    $TC qdisc del dev $IFACE ingress
+    # DISABLED (nssmirred panic): $TC qdisc del dev $IFACE ingress
   fi
 
   if [ -r /sys/devices/virtual/net/$DEV ]; then
@@ -419,7 +419,7 @@ sqm_stop() {
 
     $IP link set dev $DEV down
 
-    $IP link del $DEV type ifb
+    # DISABLED (NSS panic): $IP link del $DEV type ifb
   fi
 
   # Never unload NSS qdisc modules on stop:

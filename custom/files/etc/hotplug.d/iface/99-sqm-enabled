@@ -1,12 +1,17 @@
 #!/bin/sh
-# Restart SQM when an interface used by an *enabled* queue comes up.
-# Avoids rc.local sleep loops; no-op if no matching SQM instance.
-
+# Start SQM when WAN device is up. Avoid restart/stop races that panic act_nssmirred.
 [ "$ACTION" = "ifup" ] || exit 0
 [ -x /etc/init.d/sqm ] || exit 0
 [ -f /etc/config/sqm ] || exit 0
 
 . /lib/functions.sh
+
+LOCK=/var/lock/sqm-hotplug.lock
+mkdir -p /var/lock
+if ! mkdir "$LOCK" 2>/dev/null; then
+	exit 0
+fi
+trap "rmdir $LOCK 2>/dev/null" EXIT
 
 match=0
 _check_queue() {
@@ -15,16 +20,20 @@ _check_queue() {
 	[ "$en" -eq 1 ] || return 0
 	config_get ifn "$1" interface
 	[ -n "$ifn" ] || return 0
-	# Match logical INTERFACE (e.g. wan) or kernel DEVICE (e.g. 10g-2)
 	if [ "$ifn" = "$INTERFACE" ] || [ "$ifn" = "$DEVICE" ]; then
 		match=1
 	fi
 }
-
 config_load sqm
 config_foreach _check_queue queue
-
 [ "$match" -eq 1 ] || exit 0
 
-logger -t sqm-hotplug "ifup $INTERFACE/$DEVICE — restarting sqm"
-/etc/init.d/sqm restart
+if [ -n "$DEVICE" ] && [ -d "/sys/devices/virtual/net/ifb@${DEVICE}" ]; then
+	if tc qdisc show dev "ifb@${DEVICE}" 2>/dev/null | grep -q nsstbl; then
+		logger -t sqm-hotplug "ifup $INTERFACE/$DEVICE — SQM already active, skip"
+		exit 0
+	fi
+fi
+
+logger -t sqm-hotplug "ifup $INTERFACE/$DEVICE — starting sqm (no full restart)"
+/etc/init.d/sqm start

@@ -1,0 +1,6 @@
+#!/bin/sh
+# Stock 11-sqm stop/start races with 99 and panics act_nssmirred on IPQ807x.
+if [ -f /etc/hotplug.d/iface/11-sqm ] && [ ! -f /etc/hotplug.d/iface/11-sqm.disabled-nss-panic ]; then
+	mv /etc/hotplug.d/iface/11-sqm /etc/hotplug.d/iface/11-sqm.disabled-nss-panic
+fi
+exit 0
