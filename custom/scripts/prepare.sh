@@ -28,6 +28,7 @@ done
 need_cmd rsync
 chmod_fork_scripts
 materialize_overlay
+materialize_packages
 append_feeds_conf
 
 if [[ "${DO_FEEDS}" -eq 1 ]]; then

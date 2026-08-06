@@ -1,31 +1,39 @@
-# DNS Rewrites (LuCI)
+# DNS Rewrites
 
-Overlay under `custom/files/` — shipped in the rootfs image via `prepare.sh` → `files/`.
+## Do we need a separate git project?
 
-## Purpose
+| Option | When |
+|--------|------|
+| **Package in monorepo** `custom/package/luci-app-dns-rewrites` + **seed** | Default (this fork) |
+| **Own git repo / feed** | Reuse across many OpenWrt trees without copying |
 
-AGH-like rewrite UI without AdGuard Home:
+OpenWrt-native pattern: **package + `CONFIG_PACKAGE_…=y` in seed**, not only `files/` overlay.
 
-| Type | dnsmasq effect |
-|------|----------------|
-| **Private IP** | `address=/domain/ip` + `local=/domain/` |
-| **Public** | `server=/domain/127.0.0.1#5053` (DoH / Gateway) |
+## Build integration
 
-Avoids `cname=` under partial `local=` zones (unstable with musl/curl).
+1. Source: `custom/package/luci-app-dns-rewrites/`
+2. `prepare.sh` → `materialize_packages` → `package/custom/luci-app-dns-rewrites/`
+3. Seed (`clean_seed.config`): `CONFIG_PACKAGE_luci-app-dns-rewrites=y`
+4. `required_symbols.txt` lists the same symbol for CI verify
 
-## Paths
+## Extract to standalone project
+
+```bash
+cp -a custom/package/luci-app-dns-rewrites /path/to/luci-app-dns-rewrites
+# feeds.conf:
+#   src-link dnsrw /path/to   # directory that contains luci-app-dns-rewrites/
+```
+
+## Runtime
 
 | Path | Role |
 |------|------|
-| `/etc/config/dns_rewrite` | UCI list (site data = live / backup; empty in image) |
+| LuCI Network → DNS Rewrites | UI |
+| `/etc/config/dns_rewrite` | UCI (site hosts = on-device) |
 | `/usr/sbin/dns-rewrite-apply` | Generate conf + restart dnsmasq |
-| `/etc/dnsmasq.d/10-dns-rewrites.conf` | Generated snippet |
-| LuCI **Network → DNS Rewrites** | Editor |
+| `/etc/dnsmasq.d/10-dns-rewrites.conf` | Generated |
 
-Legacy UCI name `aykc_dns` is still read by the apply script if present.
-
-## Policy
-
-- Do **not** commit site-specific hostnames or tenant URLs to a public tree.
-- Image ships empty `dns_rewrite` + tools; configure after flash or restore from backup.
-- DNS changes: apply script / LuCI Save & Apply only — **never** `wifi reload`.
+| Type | dnsmasq |
+|------|---------|
+| Private IP | `address=` + `local=` |
+| Public | `server=/name/127.0.0.1#5053` |

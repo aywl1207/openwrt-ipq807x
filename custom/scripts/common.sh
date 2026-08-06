@@ -37,6 +37,23 @@ cd_root() {
 }
 
 # Materialize durable overlay → gitignored files/
+
+# Link/copy custom OpenWrt packages into package/custom/ (seed-selectable)
+materialize_packages() {
+  local src="${CUSTOM_DIR}/package"
+  local dst="${ROOT}/package/custom"
+  if [[ ! -d "${src}" ]]; then
+    log "no custom/package — skip"
+    return 0
+  fi
+  info "Materialize custom/package → package/custom"
+  mkdir -p "${dst}"
+  rsync -a --delete "${src}/" "${dst}/"
+  # ensure executable helpers in package files/
+  find "${dst}" -type f \( -name '*.init' -o -name 'dns-rewrite-apply' -o -path '*/files/95-*' \) -exec chmod +x {} \; 2>/dev/null || true
+  log "custom packages: $(find "${dst}" -name Makefile | wc -l)"
+}
+
 materialize_overlay() {
   info "Materialize custom/files → files/"
   [[ -d "${CUSTOM_FILES_DIR}" ]] || die "missing overlay: ${CUSTOM_FILES_DIR}"
