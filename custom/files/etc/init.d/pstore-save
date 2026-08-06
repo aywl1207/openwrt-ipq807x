@@ -2,20 +2,38 @@
 # Mount pstore and copy ramoops/OOM crash records onto overlay flash.
 # Survives reboot: /root/crashlogs/pstore-<timestamp>/
 #
-# Requires: kmod-pstore + kmod-ramoops (+ reed-solomon). DT: ramoops@51200000.
+# Size-safe: never write COMBINED into the scan dir; cap total retention.
 
 START=35
 STOP=90
 
 CRASH_ROOT="${CRASH_ROOT:-/root/crashlogs}"
 PSTORE_MNT="${PSTORE_MNT:-/sys/fs/pstore}"
+# Max bytes per individual file copied / included in summary
+MAX_FILE_BYTES="${MAX_FILE_BYTES:-65536}"
+# Max total crashlogs directory size (MB) before oldest dumps deleted
+MAX_CRASH_MB="${MAX_CRASH_MB:-8}"
 
 boot() {
 	start
 }
 
+_prune_crashlogs() {
+	local maxb=$((MAX_CRASH_MB * 1024 * 1024))
+	local used
+	[ -d "$CRASH_ROOT" ] || return 0
+	used=$(du -sk "$CRASH_ROOT" 2>/dev/null | awk '{print $1 * 1024}')
+	[ -n "$used" ] || return 0
+	# delete oldest pstore-* dirs until under budget
+	while [ "$used" -gt "$maxb" ] 2>/dev/null; do
+		old=$(ls -1dt "$CRASH_ROOT"/pstore-* 2>/dev/null | tail -n 1)
+		[ -n "$old" ] && [ -d "$old" ] || break
+		rm -rf "$old"
+		used=$(du -sk "$CRASH_ROOT" 2>/dev/null | awk '{print $1 * 1024}')
+	done
+}
+
 start() {
-	# Ensure modules (AUTOLOAD should already run; re-try is harmless)
 	modprobe reed_solomon 2>/dev/null || true
 	modprobe pstore 2>/dev/null || true
 	modprobe ramoops 2>/dev/null || true
@@ -25,7 +43,6 @@ start() {
 		mount -t pstore pstore "$PSTORE_MNT" 2>/dev/null || true
 	fi
 
-	# Any records from previous panic/OOM?
 	n=$(find "$PSTORE_MNT" -type f 2>/dev/null | wc -l)
 	n=$(echo "$n" | tr -d ' ')
 	[ -n "$n" ] || n=0
@@ -34,32 +51,44 @@ start() {
 		ts=$(date +%Y%m%d-%H%M%S 2>/dev/null || echo unknown)
 		dest="$CRASH_ROOT/pstore-$ts"
 		mkdir -p "$dest"
-		cp -a "$PSTORE_MNT"/. "$dest/" 2>/dev/null || \
-			cp -a "$PSTORE_MNT"/* "$dest/" 2>/dev/null || true
-		# Easy single-file read
+		# copy each file with size cap (avoid multi-hundred-MB dumps)
+		for f in "$PSTORE_MNT"/*; do
+			[ -f "$f" ] || continue
+			bn=$(basename "$f")
+			# head -c is size-safe
+			head -c "$MAX_FILE_BYTES" "$f" >"$dest/$bn" 2>/dev/null || \
+				cp -a "$f" "$dest/$bn" 2>/dev/null || true
+		done
+		# summary file OUTSIDE scan: write via temp then move
+		tmp=$(mktemp /tmp/pstore-combined.XXXXXX 2>/dev/null) || tmp="/tmp/pstore-combined.$$"
 		{
 			echo "=== pstore dump saved $(date 2>/dev/null) ==="
-			echo "=== files ==="
+			echo "=== files (each capped at ${MAX_FILE_BYTES} bytes) ==="
 			ls -la "$dest" 2>/dev/null
 			echo
 			for f in "$dest"/*; do
 				[ -f "$f" ] || continue
+				case "$f" in */COMBINED.txt) continue ;; esac
 				echo "======== $(basename "$f") ========"
-				cat "$f" 2>/dev/null
+				head -c "$MAX_FILE_BYTES" "$f" 2>/dev/null
 				echo
 			done
-		} >"$dest/COMBINED.txt" 2>/dev/null || true
-		# Pointer for last dump
+		} >"$tmp" 2>/dev/null || true
+		# cap combined too
+		head -c $((MAX_FILE_BYTES * 8)) "$tmp" >"$dest/COMBINED.txt" 2>/dev/null || \
+			mv "$tmp" "$dest/COMBINED.txt" 2>/dev/null || true
+		rm -f "$tmp" 2>/dev/null || true
+
 		echo "$dest" >"$CRASH_ROOT/LAST"
-		logger -t pstore-save "saved $n pstore record(s) to $dest"
-		# Free zone for next crash (unlink via pstore API)
+		logger -t pstore-save "saved $n pstore record(s) to $dest (size-capped)"
 		rm -f "$PSTORE_MNT"/* 2>/dev/null || true
+		_prune_crashlogs
 	else
 		logger -t pstore-save "pstore empty (no prior crash dump)"
 	fi
 
-	# Ensure crash log dir exists for mem-watch
 	mkdir -p "$CRASH_ROOT"
+	_prune_crashlogs
 	return 0
 }
 
