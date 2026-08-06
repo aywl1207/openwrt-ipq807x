@@ -1,0 +1,9 @@
+#!/bin/sh
+# Enable status push skeleton (set URL on device; do not ship secrets in git).
+[ -f /etc/config/status_push ] || touch /etc/config/status_push
+uci -q get status_push.main >/dev/null 2>&1 || uci set status_push.main=status_push
+uci -q get status_push.main.enabled >/dev/null 2>&1 || uci set status_push.main.enabled=1
+# URL left empty unless already set (restore from backup / manual)
+uci commit status_push
+grep -q status-push.sh /etc/crontabs/root 2>/dev/null || echo '* * * * * /usr/sbin/status-push.sh' >> /etc/crontabs/root
+exit 0
