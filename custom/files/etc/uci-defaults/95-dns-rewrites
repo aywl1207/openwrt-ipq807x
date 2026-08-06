@@ -1,0 +1,20 @@
+#!/bin/sh
+# Enable conf-dir for generated rewrite snippets. Site rewrites are live-only.
+
+. /lib/functions.sh
+
+[ -f /etc/config/dns_rewrite ] || {
+	touch /etc/config/dns_rewrite
+	uci -q set dns_rewrite.globals=dns_rewrite
+	uci -q set dns_rewrite.globals.description='Local DNS rewrite list'
+	uci -q commit dns_rewrite
+}
+
+# dnsmasq confdir (safe if already set)
+if [ -n "$(uci -q get dhcp.@dnsmasq[0])" ]; then
+	uci -q set dhcp.@dnsmasq[0].confdir='/etc/dnsmasq.d'
+	mkdir -p /etc/dnsmasq.d
+	uci -q commit dhcp
+fi
+
+exit 0

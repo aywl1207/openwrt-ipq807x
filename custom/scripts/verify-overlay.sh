@@ -72,6 +72,18 @@ check_grep etc/config/https-dns-proxy 'resolver_url'
 check_grep etc/uci-defaults/96-dns-gateway-mode '127.0.0.1#5053'
 check_grep etc/uci-defaults/96-dns-gateway-mode 'https-dns-proxy'
 
+# DNS rewrites LuCI (generic; site hosts live-only)
+check_x usr/sbin/dns-rewrite-apply
+check_x etc/init.d/dns-rewrite
+check_file etc/config/dns_rewrite
+check_file usr/share/luci/menu.d/luci-app-dns-rewrites.json
+check_file usr/share/rpcd/acl.d/luci-app-dns-rewrites.json
+check_file www/luci-static/resources/view/dns-rewrites/rewrites.js
+check_grep usr/sbin/dns-rewrite-apply 'address='
+check_grep usr/sbin/dns-rewrite-apply 'server='
+check_absent etc/config/aykc_dns
+
+
 # AGH must not ship in this DNS mode
 check_absent etc/config/adguardhome
 check_absent etc/adguardhome/filter-refresh.sh

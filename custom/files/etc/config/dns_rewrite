@@ -1,0 +1,9 @@
+# DNS rewrites (private address= / public DoH forward).
+# Edit in LuCI: Network → DNS Rewrites
+# Apply: Save & Apply or /usr/sbin/dns-rewrite-apply
+#
+# Do not put site-specific secrets or host lists here if the image is public;
+# configure on the device after flash.
+
+config dns_rewrite 'globals'
+	option description 'Local DNS rewrite list'

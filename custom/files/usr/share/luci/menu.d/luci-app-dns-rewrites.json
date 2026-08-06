@@ -1,0 +1,16 @@
+{
+	"admin/network/dns_rewrites": {
+		"title": "DNS Rewrites",
+		"order": 46,
+		"action": {
+			"type": "view",
+			"path": "dns-rewrites/rewrites"
+		},
+		"depends": {
+			"acl": [ "luci-app-dns-rewrites" ],
+			"fs": {
+				"/usr/sbin/dns-rewrite-apply": "executable"
+			}
+		}
+	}
+}
