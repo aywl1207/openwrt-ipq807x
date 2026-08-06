@@ -18,13 +18,14 @@ DEVICE=qnap_301w ./custom/scripts/build.sh
 | Path | Role |
 |------|------|
 | `files/` | Rootfs overlay (init, uci-defaults, sqm, configs) |
-| `config/clean_seed.config` | Package selection |
+| `feed/` | Local OpenWrt feed (`src-link custom_feed`) |
+| `feeds.conf.append` | Registers local feed in `feeds.conf.default` |
+| `config/clean_seed.config` | Package selection (`CONFIG_PACKAGE_*=y` only) |
 | `config/seed_ipq807x_1g.config` | 1GB / NSS platform knobs |
 | `config/required_symbols.txt` | Must-have `CONFIG_*=y` checks |
 | `scripts/*.sh` | prepare / build / verify / sync helpers |
 | `docs/` | BUILD, COMPONENTS, LAYOUT, **SITE** (runtime / rc.local policy) |
 | `UPSTREAM_SHA` | Last synced `main_nss` tip |
-| `feeds.conf.append` | Appended to `feeds.conf.default` (idempotent) |
 
 ## Workflows
 

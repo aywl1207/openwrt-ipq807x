@@ -6,10 +6,12 @@ Everything this fork owns lives under **`custom/`** (plus two workflow files and
 custom/
 ├── PRESERVE.list          # what survives upstream sync
 ├── UPSTREAM_SHA           # last synced AgustinLorenzo main_nss tip
-├── feeds.conf.append      # idempotent append to feeds.conf.default
+├── feeds.conf.append      # idempotent append → feeds.conf.default (src-link)
+├── feed/                  # local OpenWrt feed (src-link custom_feed)
+│   └── luci-app-dns-rewrites/
 ├── README.md              # short maintainer index
 ├── config/
-│   ├── clean_seed.config  # package enable/disable
+│   ├── clean_seed.config  # package enable/disable (CONFIG_PACKAGE_* only)
 │   ├── seed_ipq807x_1g.config
 │   └── required_symbols.txt   # CI/build verify list (single source)
 ├── files/                 # durable rootfs overlay → materialize to files/
@@ -58,8 +60,11 @@ DEVICE=dynalink_dl-wrx36 ./custom/scripts/build.sh
 | Kind | Where |
 |------|--------|
 | Rootfs file / init / uci-defaults | `custom/files/...` |
-| Package enable | `custom/config/clean_seed.config` |
+| **New package source** | `custom/feed/<pkg>/` + `feeds.conf.append` `src-link` |
+| Package enable (image) | `custom/config/clean_seed.config` (`CONFIG_PACKAGE_*=y`) |
 | Platform/NSS knobs | `custom/config/seed_ipq807x_1g.config` |
 | Must-have CONFIG_ check | `custom/config/required_symbols.txt` |
 | Build logic | `custom/scripts/*.sh` |
 | Survives sync | already under `custom/` or add path to `PRESERVE.list` |
+
+**Feed vs seed:** the **feed** supplies package source; the **seed** only selects packages for the image.

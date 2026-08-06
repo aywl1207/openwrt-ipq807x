@@ -72,11 +72,17 @@ check_grep etc/config/https-dns-proxy 'resolver_url'
 check_grep etc/uci-defaults/96-dns-gateway-mode '127.0.0.1#5053'
 check_grep etc/uci-defaults/96-dns-gateway-mode 'https-dns-proxy'
 
-# DNS rewrites: seed package under custom/package (not files/ overlay)
-if [[ -f "${CUSTOM_DIR}/package/luci-app-dns-rewrites/Makefile" ]]; then
-  log "OK  custom/package/luci-app-dns-rewrites"
+# DNS rewrites: local feed package (custom/feed), selected via seed CONFIG_PACKAGE_*
+if [[ -f "${CUSTOM_DIR}/feed/luci-app-dns-rewrites/Makefile" ]]; then
+  log "OK  custom/feed/luci-app-dns-rewrites (feed)"
 else
-  log "FAIL missing custom/package/luci-app-dns-rewrites"
+  log "FAIL missing custom/feed/luci-app-dns-rewrites"
+  fail=$((fail + 1))
+fi
+if grep -qE '^src-link[[:space:]]+custom_feed[[:space:]]+custom/feed' "${CUSTOM_DIR}/feeds.conf.append" 2>/dev/null; then
+  log "OK  feeds.conf.append src-link custom_feed"
+else
+  log "FAIL feeds.conf.append missing src-link custom_feed"
   fail=$((fail + 1))
 fi
 check_absent etc/config/aykc_dns

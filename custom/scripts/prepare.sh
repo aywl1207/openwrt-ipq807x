@@ -28,7 +28,6 @@ done
 need_cmd rsync
 chmod_fork_scripts
 materialize_overlay
-materialize_packages
 append_feeds_conf
 
 if [[ "${DO_FEEDS}" -eq 1 ]]; then
@@ -36,7 +35,9 @@ if [[ "${DO_FEEDS}" -eq 1 ]]; then
   info "feeds update / install"
   ./scripts/feeds update -a
   ./scripts/feeds install -a
+  # Explicit installs (packages feed + local custom_feed)
   ./scripts/feeds install tailscale luci-app-tailscale-community cloudflared https-dns-proxy 2>/dev/null || true
+  ./scripts/feeds install luci-app-dns-rewrites 2>/dev/null || true
   "${CUSTOM_SCRIPTS_DIR}/apply-go-optimize.sh"
 else
   # Still verify overlay without touching feeds tree

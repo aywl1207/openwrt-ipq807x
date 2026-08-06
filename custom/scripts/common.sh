@@ -37,23 +37,6 @@ cd_root() {
 }
 
 # Materialize durable overlay → gitignored files/
-
-# Link/copy custom OpenWrt packages into package/custom/ (seed-selectable)
-materialize_packages() {
-  local src="${CUSTOM_DIR}/package"
-  local dst="${ROOT}/package/custom"
-  if [[ ! -d "${src}" ]]; then
-    log "no custom/package — skip"
-    return 0
-  fi
-  info "Materialize custom/package → package/custom"
-  mkdir -p "${dst}"
-  rsync -a --delete "${src}/" "${dst}/"
-  # ensure executable helpers in package files/
-  find "${dst}" -type f \( -name '*.init' -o -name 'dns-rewrite-apply' -o -path '*/files/95-*' \) -exec chmod +x {} \; 2>/dev/null || true
-  log "custom packages: $(find "${dst}" -name Makefile | wc -l)"
-}
-
 materialize_overlay() {
   info "Materialize custom/files → files/"
   [[ -d "${CUSTOM_FILES_DIR}" ]] || die "missing overlay: ${CUSTOM_FILES_DIR}"
@@ -70,24 +53,39 @@ materialize_overlay() {
   log "overlay files: $(find "${ROOT}/files" -type f | wc -l)"
 }
 
-# Idempotent feeds.conf.default append from custom/feeds.conf.append
+# Idempotent refresh of custom feeds block in feeds.conf.default.
+# Markers contain '/' so use awk fixed-string matching (not sed /…/).
 append_feeds_conf() {
   local feeds="${ROOT}/feeds.conf.default"
+  local tmp
   [[ -f "${FEEDS_APPEND}" ]] || { log "no feeds append file — skip"; return 0; }
   [[ -f "${feeds}" ]] || die "missing ${feeds}"
 
   if grep -qF "${FEEDS_MARKER_BEGIN}" "${feeds}" 2>/dev/null; then
-    log "feeds.conf.default already has custom append block"
-    return 0
+    info "Refresh custom feeds block in feeds.conf.default"
+  else
+    info "Append custom feeds block → feeds.conf.default"
   fi
 
-  info "Append custom/feeds.conf.append → feeds.conf.default"
+  tmp="$(mktemp)"
+  # Drop any existing marker block, then re-append current feeds.conf.append
+  awk -v b="${FEEDS_MARKER_BEGIN}" -v e="${FEEDS_MARKER_END}" '
+    $0 == b { skip = 1; next }
+    skip && $0 == e { skip = 0; next }
+    !skip { print }
+  ' "${feeds}" > "${tmp}"
+
+  # Strip trailing empty lines before re-append
+  sed -i -e :a -e '/^$/{$d;N;ba' -e '}' "${tmp}"
+
   {
+    cat "${tmp}"
     printf '\n%s\n' "${FEEDS_MARKER_BEGIN}"
-    # strip leading blank lines from append file
     sed '/./,$!d' "${FEEDS_APPEND}"
     printf '%s\n' "${FEEDS_MARKER_END}"
-  } >> "${feeds}"
+  } > "${feeds}"
+  rm -f "${tmp}"
+  log "feeds: custom_feed → custom/feed (src-link)"
 }
 
 chmod_fork_scripts() {

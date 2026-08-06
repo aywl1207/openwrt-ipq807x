@@ -1,3 +1,4 @@
-# Official Tailscale package lives in the openwrt packages feed (net/tailscale).
-# No extra src-git is required (avoids feed conflicts / duplicate packages).
-# After feeds install: ./custom/scripts/apply-go-optimize.sh
+# Local feed for fork packages (not package/custom materialize).
+# Path is relative to OpenWrt root after prepare (see append_feeds_conf).
+# Official Tailscale remains in the packages feed.
+src-link custom_feed custom/feed

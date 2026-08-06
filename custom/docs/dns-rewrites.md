@@ -1,20 +1,36 @@
 # DNS Rewrites
 
-## Package + seed
+## Feed (not overlay materialize)
 
-| Item | Value |
-|------|--------|
-| Package | `custom/package/luci-app-dns-rewrites` |
-| Seed | `CONFIG_PACKAGE_luci-app-dns-rewrites=y` |
-| i18n (zh-tw) | `CONFIG_PACKAGE_luci-i18n-dns-rewrites-zh-tw=y` |
-| Built from | `po/zh_Hant/dns-rewrites.po` via `luci.mk` → `dns-rewrites.zh-tw.lmo` |
+| Piece | Location |
+|-------|----------|
+| **Feed package** | `custom/feed/luci-app-dns-rewrites/` |
+| **Feed registration** | `custom/feeds.conf.append` → `src-link custom_feed custom/feed` |
+| **Image selection** | seed: `CONFIG_PACKAGE_luci-app-dns-rewrites=y` |
+| **i18n** | seed: `CONFIG_PACKAGE_luci-i18n-dns-rewrites-zh-tw=y` |
 
-Uses standard LuCI application layout (`htdocs/`, `root/`, `po/`) and `feeds/luci/luci.mk`.
+`prepare.sh` appends the feed and runs `./scripts/feeds update/install`
+(including explicit `feeds install luci-app-dns-rewrites`).
 
-## Standalone project
+**Seed** only *selects* packages; the **feed** supplies the source.
+Do not put package trees under `custom/package` / `package/custom`.
 
-Copy `custom/package/luci-app-dns-rewrites` to its own repo/feed when needed.
+## Extract as standalone feed repo
+
+```bash
+# repo root = parent of luci-app-dns-rewrites/
+# feeds.conf:
+src-link dnsrw /path/to/parent
+```
+
+## Types
+
+| Type | dnsmasq |
+|------|---------|
+| Private IP | `address=` + `local=` |
+| Public | `server=/name/127.0.0.1#5053` |
 
 ## UI language
 
-Set LuCI language to **正體中文** (zh-tw). Menu title and form strings load from the i18n package.
+Set LuCI language to **正體中文** (zh-tw). Menu/form strings come from
+`CONFIG_PACKAGE_luci-i18n-dns-rewrites-zh-tw` (`po/zh_Hant/`).
