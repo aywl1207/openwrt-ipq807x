@@ -60,7 +60,10 @@ if [[ -n "${DEVICE}" ]]; then
   } >> "${ROOT}/.config"
 fi
 make defconfig
+force_device_rootfs_packages
+make defconfig
 "${CUSTOM_SCRIPTS_DIR}/verify-config.sh"
+"${CUSTOM_SCRIPTS_DIR}/verify-overlay.sh"
 
 ./scripts/diffconfig.sh > "${LOG_DIR}/diffconfig-${STAMP}.config" || true
 cp -f .config "${LOG_DIR}/fullconfig-${STAMP}.config"

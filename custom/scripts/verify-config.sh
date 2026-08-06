@@ -55,5 +55,23 @@ if [[ -n "${DEVICE:-}" ]]; then
   fi
 fi
 
+# Re-check critical packages are not left as =m only
+for s in \
+  CONFIG_PACKAGE_ipq-wifi-qnap_301w \
+  CONFIG_PACKAGE_kmod-fs-f2fs \
+  CONFIG_PACKAGE_f2fs-tools \
+  CONFIG_PACKAGE_luci-app-dns-rewrites
+do
+  if grep -q "^${s}=y$" "${CFG}"; then
+    log "OK  ${s}=y (not modular-only)"
+  elif grep -q "^${s}=m$" "${CFG}"; then
+    log "FAIL ${s}=m (must be =y for image rootfs)"
+    fail=1
+  else
+    log "FAIL ${s} missing"
+    fail=1
+  fi
+done
+
 [[ "${fail}" -eq 0 ]] || die "config verification failed"
 info "Config OK"

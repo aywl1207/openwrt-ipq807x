@@ -41,7 +41,8 @@ materialize_overlay() {
   info "Materialize custom/files → files/"
   [[ -d "${CUSTOM_FILES_DIR}" ]] || die "missing overlay: ${CUSTOM_FILES_DIR}"
   mkdir -p "${ROOT}/files"
-  rsync -a "${CUSTOM_FILES_DIR}/" "${ROOT}/files/"
+  # --delete drops removed overlay files (e.g. status-push no longer shipped)
+  rsync -a --delete "${CUSTOM_FILES_DIR}/" "${ROOT}/files/"
   # Executable policy for OpenWrt hooks
   find "${ROOT}/files/etc/init.d" "${ROOT}/files/etc/uci-defaults" -type f \
     -exec chmod +x {} \; 2>/dev/null || true
@@ -118,6 +119,35 @@ merge_config_stack() {
   cp -f "${ROOT}/.full_config" "${ROOT}/.config"
   cat "${SEED_CLEAN}" >> "${ROOT}/.config"
   cat "${SEED_1G}" >> "${ROOT}/.config"
+}
+
+# After DEVICE pin + defconfig, OpenWrt may leave DEVICE_PACKAGES as =m and omit
+# them from rootfs (caused RO overlay + missing ath11k board data on local build).
+# Force critical packages =y and re-defconfig so they always land in the image.
+force_device_rootfs_packages() {
+  local cfg="${ROOT}/.config"
+  [[ -f "${cfg}" ]] || die "force_device_rootfs_packages: missing .config"
+  info "Force critical rootfs packages =y (DEVICE_PACKAGES + feed apps)"
+  {
+    echo
+    echo '# --- force_device_rootfs_packages (custom/scripts) ---'
+    # QNAP 301w Target-Profile-Packages (must be in squashfs, not =m only)
+    echo 'CONFIG_PACKAGE_ipq-wifi-qnap_301w=y'
+    echo 'CONFIG_PACKAGE_kmod-fs-f2fs=y'
+    echo 'CONFIG_PACKAGE_f2fs-tools=y'
+    echo 'CONFIG_PACKAGE_f2fsck=y'
+    echo 'CONFIG_PACKAGE_mkf2fs=y'
+    # Feed LuCI app (seed already sets these; re-assert post-defconfig)
+    echo 'CONFIG_PACKAGE_luci-app-dns-rewrites=y'
+    echo 'CONFIG_PACKAGE_luci-i18n-dns-rewrites-zh-tw=y'
+    # NSS SQM deps
+    echo 'CONFIG_PACKAGE_sqm-scripts=y'
+    echo 'CONFIG_PACKAGE_sqm-scripts-nss=y'
+    echo 'CONFIG_PACKAGE_kmod-qca-nss-drv-qdisc=y'
+    echo 'CONFIG_PACKAGE_kmod-qca-nss-drv-igs=y'
+    echo 'CONFIG_PACKAGE_nss-firmware-ipq807x=y'
+    echo 'CONFIG_PACKAGE_nss-firmware=y'
+  } >> "${cfg}"
 }
 
 find_pkg_dir() {

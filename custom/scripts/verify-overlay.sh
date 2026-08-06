@@ -98,8 +98,21 @@ check_grep etc/init.d/tailscale 'GOGC=10'
 check_grep etc/init.d/tailscale 'GOMEMLIMIT'
 check_grep etc/init.d/cloudflared 'GOGC=10'
 check_grep etc/config/sqm 'nss-zk.qos'
+check_grep etc/config/sqm "option enabled '0'"
 check_grep usr/lib/sqm/nss-zk.qos 'interval 50ms'
 check_grep usr/lib/sqm/nss-zk.qos 'leaving qca_nss_qdisc'
+# Must not tear down IFB (NSS act_nssmirred panic / reboot loop)
+if grep -qE '^\s*\$IP link del \$DEV type ifb' "${ROOT}/files/usr/lib/sqm/nss-zk.qos" 2>/dev/null; then
+  log "FAIL nss-zk.qos still deletes IFB (NSS panic risk)"
+  fail=1
+else
+  log "OK  nss-zk.qos does not ip link del IFB"
+fi
+check_grep etc/init.d/pstore-save 'MAX_FILE_BYTES'
+check_grep etc/uci-defaults/97-sqm-nss-optimize "enabled='0'"
+# status-push is device-only (not in image)
+check_absent etc/uci-defaults/94-status-push
+check_absent usr/sbin/status-push.sh
 check_grep etc/rc.local '^exit 0'
 check_grep etc/sysctl.d/60-cloudflared-ping.conf 'ping_group_range'
 

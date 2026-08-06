@@ -72,7 +72,11 @@ if [[ "${DO_CONFIG}" -eq 1 ]]; then
   fi
   info "make defconfig"
   make defconfig
+  force_device_rootfs_packages
+  info "make defconfig (after force_device_rootfs_packages)"
+  make defconfig
   "${CUSTOM_SCRIPTS_DIR}/verify-config.sh"
+  "${CUSTOM_SCRIPTS_DIR}/verify-overlay.sh"
 fi
 
 info "prepare complete"

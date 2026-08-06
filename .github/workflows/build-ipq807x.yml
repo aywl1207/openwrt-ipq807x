@@ -43,6 +43,9 @@ jobs:
           source custom/scripts/common.sh
           merge_config_stack
           make defconfig
+          # Force DEVICE_PACKAGES into rootfs (=y not =m) — prevents RO overlay / missing board data
+          force_device_rootfs_packages
+          make defconfig
           ./custom/scripts/verify-config.sh
           ./custom/scripts/verify-overlay.sh
 

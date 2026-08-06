@@ -2,7 +2,8 @@
 # NSS SQM / QoS first-boot setup for IPQ807x.
 # - Prefer nss-zk.qos + fq_codel (hardware shaper)
 # - Keep classic qos-scripts OFF (conflicts / CPU-only)
-# - Do not invent WAN rates; enable shaping only if rates already set
+# - NEVER auto-enable SQM (user enables manually after flash)
+# - act_nssmirred panics if SQM stop/start races on ifup — keep off by default
 
 # Soft/hardware flow offload fights SQM + ECM — keep off (also in 99-qol_nss)
 [ -n "$(uci -q get firewall.@defaults[0])" ] && {
@@ -11,10 +12,9 @@
 	uci -q commit firewall
 }
 
-# Ensure SQM UCI exists
 [ -f /etc/config/sqm ] || touch /etc/config/sqm
 
-# Migrate / create the 'wan' queue toward NSS defaults without wiping user rates
+# Ensure wan queue exists with NSS defaults, always disabled
 if ! uci -q get sqm.wan >/dev/null 2>&1; then
 	uci -q batch <<-EOF
 		set sqm.wan=queue
@@ -25,7 +25,6 @@ if ! uci -q get sqm.wan >/dev/null 2>&1; then
 	EOF
 fi
 
-# Always pin script/qdisc to NSS path (safe even if user already set rates)
 uci -q set sqm.wan.qdisc='fq_codel'
 uci -q set sqm.wan.script='nss-zk.qos'
 uci -q set sqm.wan.qdisc_advanced='1'
@@ -34,20 +33,19 @@ uci -q set sqm.wan.ingress_ecn='ECN'
 uci -q set sqm.wan.egress_ecn='NOECN'
 uci -q set sqm.wan.itarget='auto'
 uci -q set sqm.wan.etarget='auto'
-# Only set opts if empty so user overrides stick on reflash-preserving overlay
 [ -z "$(uci -q get sqm.wan.eqdisc_opts)" ] && uci -q set sqm.wan.eqdisc_opts='interval 50ms'
 [ -z "$(uci -q get sqm.wan.iqdisc_opts)" ] && uci -q set sqm.wan.iqdisc_opts='interval 50ms'
 [ -z "$(uci -q get sqm.wan.linklayer)" ] && uci -q set sqm.wan.linklayer='none'
 [ -z "$(uci -q get sqm.wan.overhead)" ] && uci -q set sqm.wan.overhead='18'
 
-# If stock package left eth1/cake/piece_of_cake — neutralize those instances
+# Force ALL queues disabled on first-boot of this script (safe after bad flash)
+# User re-enables in LuCI when ready.
 for sid in $(uci -q show sqm | sed -n "s/^sqm\.\([^=]*\)=queue.*/\1/p"); do
-	[ "$sid" = "wan" ] && continue
+	uci -q set sqm.$sid.enabled='0'
 	script="$(uci -q get sqm.$sid.script)"
 	qdisc="$(uci -q get sqm.$sid.qdisc)"
 	case "$script" in
 		piece_of_cake.qos|layer_cake.qos|simple.qos|simplest.qos|simplest_tbf.qos)
-			uci -q set sqm.$sid.enabled='0'
 			uci -q set sqm.$sid.script='nss-zk.qos'
 			uci -q set sqm.$sid.qdisc='fq_codel'
 			;;
@@ -60,21 +58,14 @@ for sid in $(uci -q show sqm | sed -n "s/^sqm\.\([^=]*\)=queue.*/\1/p"); do
 	esac
 done
 
-# Auto-enable wan SQM only when both rates look configured (>0)
-down="$(uci -q get sqm.wan.download)"
-up="$(uci -q get sqm.wan.upload)"
-down="${down:-0}"
-up="${up:-0}"
-if [ "$down" -gt 0 ] 2>/dev/null && [ "$up" -gt 0 ] 2>/dev/null; then
-	uci -q set sqm.wan.enabled='1'
-else
-	# Avoid shaping with 0/stock sample rates
-	uci -q set sqm.wan.enabled='0'
-fi
+# Pin wan script even if user will enable later
+uci -q set sqm.wan.script='nss-zk.qos'
+uci -q set sqm.wan.qdisc='fq_codel'
+uci -q set sqm.wan.enabled='0'
 
 uci -q commit sqm
 
-# Classic OpenWrt qos-scripts (HTB/iptables) — do not run alongside NSS SQM
+# Classic OpenWrt qos-scripts — do not run alongside NSS SQM
 if [ -x /etc/init.d/qos ]; then
 	/etc/init.d/qos stop 2>/dev/null || true
 	/etc/init.d/qos disable 2>/dev/null || true
@@ -84,15 +75,10 @@ if [ -f /etc/config/qos ]; then
 	uci -q commit qos 2>/dev/null || true
 fi
 
-# SQM init: enable so hotplug works once the queue is enabled
+# Keep sqm service enabled so manual LuCI enable + hotplug work later; do not start
 if [ -x /etc/init.d/sqm ]; then
-	/etc/init.d/sqm enable
-	if [ "$(uci -q get sqm.wan.enabled)" = "1" ]; then
-		/etc/init.d/sqm restart 2>/dev/null || true
-	else
-		# No active queues — do not leave a failed start state
-		/etc/init.d/sqm stop 2>/dev/null || true
-	fi
+	/etc/init.d/sqm enable 2>/dev/null || true
+	/etc/init.d/sqm stop 2>/dev/null || true
 fi
 
 exit 0
