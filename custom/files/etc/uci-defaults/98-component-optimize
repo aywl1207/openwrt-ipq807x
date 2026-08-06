@@ -49,4 +49,17 @@ fi
 # --- zram init enable --------------------------------------------------------
 [ -x /etc/init.d/zram ] && /etc/init.d/zram enable 2>/dev/null || true
 
+# --- pstore/ramoops crash log harvest + mem-watch ----------------------------
+[ -x /etc/init.d/pstore-save ] && /etc/init.d/pstore-save enable 2>/dev/null || true
+mkdir -p /root/crashlogs
+# 5-minute RAM pressure log (overlay); survives reboot
+if [ -x /usr/sbin/mem-watch.sh ]; then
+	if [ -f /etc/crontabs/root ]; then
+		grep -q 'mem-watch.sh' /etc/crontabs/root 2>/dev/null || \
+			echo '*/5 * * * * /usr/sbin/mem-watch.sh' >> /etc/crontabs/root
+	else
+		echo '*/5 * * * * /usr/sbin/mem-watch.sh' > /etc/crontabs/root
+	fi
+fi
+
 exit 0

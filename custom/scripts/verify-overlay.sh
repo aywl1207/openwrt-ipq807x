@@ -55,6 +55,14 @@ check_x etc/adguardhome/filter-refresh.sh
 check_x etc/init.d/adguardhome-filters
 check_grep etc/config/adguardhome "work_dir.*/var/lib/adguardhome"
 check_grep etc/init.d/adguardhome-filters 'boot filter refresh'
+check_grep etc/adguardhome/filter-refresh.sh 'agh_restart'
+check_grep etc/adguardhome/filter-refresh.sh 'before filter refresh'
+check_grep etc/adguardhome/filter-refresh.sh 'after filter refresh'
+check_x etc/init.d/pstore-save
+check_x usr/sbin/mem-watch.sh
+check_grep etc/init.d/pstore-save 'pstore'
+check_grep etc/uci-defaults/98-component-optimize 'pstore-save'
+check_grep etc/uci-defaults/98-component-optimize 'mem-watch.sh'
 
 check_grep etc/init.d/tailscale 'GOGC=10'
 check_grep etc/init.d/tailscale 'GOMEMLIMIT'

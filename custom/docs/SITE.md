@@ -66,6 +66,32 @@ uci commit adguardhome
   **Never** `sed` `/etc/init.d/adguardhome` on boot.
 - **`work_dir=/var/lib/adguardhome`** sits on tmpfs by design (saves flash; querylog/stats do not thrash overlay).
 - **Must** enable `adguardhome-filters` (START=99): waits for AGH + WAN, then runs `filter-refresh.sh` on **every** boot.
+- `filter-refresh.sh` **restarts AGH before and after** each list update so RAM from large filter loads is released.
+
+### RAM policy (1GB IPQ807x)
+
+| Do | Don't |
+|----|--------|
+| AGH: low `size_memory`, short stats, `file_enabled: false` if work_dir is tmpfs | `echo 3 > drop_caches` cron |
+| `filter-refresh.sh` restart AGH before+after list update | Blind nightly full reboot unless needed |
+| `agh-ram-guard` cron: restart AGH only if MemAvailable &lt; 80 MiB | Raise AGH `size_memory` / 30d stats on tmpfs |
+| sysctl `65-ram-opt.conf` (swappiness 80, min_free 32M) | Ignore SUnreclaim (~NSS tax) as “leak” |
+
+Recommended AGH yaml knobs (device-managed file):
+`querylog.interval: 6h`, `querylog.size_memory: 200`, `querylog.file_enabled: false`,
+`statistics.interval: 24h`, `dns.max_goroutines: 100`, `dns.upstream_mode: load_balance`,
+`filtering.max_http_size: 32MB`.
+
+### OOM / panic logs (after rebuild with kmod-pstore + kmod-ramoops)
+
+```bash
+# After unexpected reboot:
+ls -la /root/crashlogs/
+cat /root/crashlogs/LAST          # path of last pstore harvest
+cat $(cat /root/crashlogs/LAST)/COMBINED.txt | less
+tail -100 /root/crashlogs/mem-watch.log   # RAM trend every 5 min
+ls /sys/fs/pstore/                # live pstore (empty after harvest)
+```
 - Until boot refresh finishes, blocking may be incomplete for a short window.
 
 ### Filter refresh (boot every time + daily cron, secrets on device)
@@ -78,7 +104,7 @@ uci commit adguardhome
 
 # boot: /etc/init.d/adguardhome-filters (START=99) — always refresh
 # cron (root), e.g. daily:
-# 15 4 * * * /etc/adguardhome/filter-refresh.sh
+# 0 20 * * * /etc/adguardhome/filter-refresh.sh
 ```
 
 Do **not** run `echo 3 > /proc/sys/vm/drop_caches` on a 1 GB router as routine maintenance.

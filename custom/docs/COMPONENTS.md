@@ -9,7 +9,9 @@ Packages listed in the README remain installed; tuning is size/RAM/runtime only.
 | **luci-app-tailscale-community** | LuCI app + i18n | — | Status / login / routes; **`luci-i18n-…-zh-tw`** |
 | **boot / sysctl** | minimal `rc.local` | `ping_group_range` | See [SITE.md](SITE.md); no init.d sed |
 | **SQM hotplug** | `99-sqm-enabled` | — | Restart SQM on matching ifup |
-| **AGH filter refresh** | `filter-refresh.sh` + `adguardhome-filters` | **every boot** + cron | `work_dir=/var/lib` (tmpfs); `api.env` on device |
+| **AGH filter refresh** | `filter-refresh.sh` + `adguardhome-filters` | **every boot** + **20:00 HKT** cron | `work_dir=/var/lib` (tmpfs); `api.env` on device; **restart AGH before+after** refresh to drop RAM |
+| **OOM / crash forensics** | `kmod-pstore` + `kmod-ramoops` + `pstore-save` | boot | Mount `/sys/fs/pstore`; copy dumps → `/root/crashlogs/pstore-*` |
+| **mem-watch** | `/usr/sbin/mem-watch.sh` | cron `*/5` | Soft RAM pressure log → `/root/crashlogs/mem-watch.log` |
 | **adguardhome** | `GO_PKG_LDFLAGS -s -w` | `gc=20`, `maxprocs=2`, 192 MiB soft limit | **Primary DNS — auto-start** |
 | **cloudflared** | `GO_PKG_LDFLAGS -s -w` | `GOGC=10`, `GOMEMLIMIT=96MiB` | disabled until configured; log → `/tmp` |
 | **NSS / ECM** | FW 12.5 + crypto | `pbuf=auto`; SW/HW flow offload **off** | ECM owns acceleration |
