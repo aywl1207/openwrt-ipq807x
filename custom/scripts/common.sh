@@ -55,11 +55,14 @@ materialize_overlay() {
 
 # Idempotent refresh of custom feeds block in feeds.conf.default.
 # Markers contain '/' so use awk fixed-string matching (not sed /…/).
+# src-link paths must be absolute (OpenWrt requirement).
 append_feeds_conf() {
   local feeds="${ROOT}/feeds.conf.default"
-  local tmp
+  local tmp feed_abs
   [[ -f "${FEEDS_APPEND}" ]] || { log "no feeds append file — skip"; return 0; }
   [[ -f "${feeds}" ]] || die "missing ${feeds}"
+  feed_abs="${ROOT}/custom/feed"
+  [[ -d "${feed_abs}" ]] || die "missing local feed dir: ${feed_abs}"
 
   if grep -qF "${FEEDS_MARKER_BEGIN}" "${feeds}" 2>/dev/null; then
     info "Refresh custom feeds block in feeds.conf.default"
@@ -81,11 +84,18 @@ append_feeds_conf() {
   {
     cat "${tmp}"
     printf '\n%s\n' "${FEEDS_MARKER_BEGIN}"
-    sed '/./,$!d' "${FEEDS_APPEND}"
+    # Rewrite relative custom_feed path → absolute (required for src-link)
+    sed -e '/./,$!d' \
+        -e "s|^src-link[[:space:]]\\+custom_feed[[:space:]]\\+custom/feed.*|src-link custom_feed ${feed_abs}|" \
+        "${FEEDS_APPEND}"
+    # Ensure line exists even if append file only has comments
+    if ! grep -qE '^src-link[[:space:]]+custom_feed[[:space:]]' "${FEEDS_APPEND}" 2>/dev/null; then
+      printf 'src-link custom_feed %s\n' "${feed_abs}"
+    fi
     printf '%s\n' "${FEEDS_MARKER_END}"
   } > "${feeds}"
   rm -f "${tmp}"
-  log "feeds: custom_feed → custom/feed (src-link)"
+  log "feeds: custom_feed → ${feed_abs} (src-link)"
 }
 
 chmod_fork_scripts() {

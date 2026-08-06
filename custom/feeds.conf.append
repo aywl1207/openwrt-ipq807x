@@ -1,4 +1,4 @@
 # Local feed for fork packages (not package/custom materialize).
-# Path is relative to OpenWrt root after prepare (see append_feeds_conf).
+# prepare.sh rewrites path to absolute (OpenWrt src-link requires absolute).
 # Official Tailscale remains in the packages feed.
 src-link custom_feed custom/feed

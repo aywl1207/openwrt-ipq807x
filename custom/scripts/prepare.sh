@@ -33,11 +33,27 @@ append_feeds_conf
 if [[ "${DO_FEEDS}" -eq 1 ]]; then
   need_cmd make
   info "feeds update / install"
+  # Ensure custom_feed is registered (absolute src-link)
+  grep -qE '^src-link[[:space:]]+custom_feed[[:space:]]' feeds.conf.default \
+    || die "feeds.conf.default missing src-link custom_feed after append_feeds_conf"
   ./scripts/feeds update -a
+  # Local feed first so install -a sees luci-app-dns-rewrites
+  ./scripts/feeds update custom_feed
   ./scripts/feeds install -a
   # Explicit installs (packages feed + local custom_feed)
   ./scripts/feeds install tailscale luci-app-tailscale-community cloudflared https-dns-proxy 2>/dev/null || true
-  ./scripts/feeds install luci-app-dns-rewrites 2>/dev/null || true
+  info "Install luci-app-dns-rewrites from custom_feed"
+  if ! ./scripts/feeds install -p custom_feed luci-app-dns-rewrites; then
+    ./scripts/feeds install luci-app-dns-rewrites \
+      || die "feeds install luci-app-dns-rewrites failed (is custom_feed linked?)"
+  fi
+  # Must exist for CONFIG_PACKAGE_* to survive defconfig
+  if [[ ! -f package/feeds/custom_feed/luci-app-dns-rewrites/Makefile ]] \
+     && [[ ! -f feeds/custom_feed/luci-app-dns-rewrites/Makefile ]]; then
+    die "luci-app-dns-rewrites not present after feeds install"
+  fi
+  log "OK luci-app-dns-rewrites feed package installed"
+  ls -la package/feeds/custom_feed/ 2>/dev/null || ls -la feeds/custom_feed/ | head
   "${CUSTOM_SCRIPTS_DIR}/apply-go-optimize.sh"
 else
   # Still verify overlay without touching feeds tree
