@@ -1,0 +1,76 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: luci-app-dns-rewrites\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-06 18:00+0800\n"
+"PO-Revision-Date: 2026-08-06 18:00+0800\n"
+"Last-Translator: \n"
+"Language-Team: Chinese (Traditional)\n"
+"Language: zh_Hant\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgid "DNS Rewrites"
+msgstr "DNS 改寫"
+
+msgid "Manage local name overrides for the router DNS resolver (dnsmasq)."
+msgstr "管理路由器 DNS 解析器（dnsmasq）的本機名稱覆寫。"
+
+msgid "<strong>Private IP</strong> — answer with a fixed IPv4 address. The name is treated as local (no public AAAA mixed in). Use for hosts on your LAN, NAS, or other internal addresses."
+msgstr "<strong>私人 IP</strong> — 以固定 IPv4 回應。該名稱視為本機（不會混入公網 AAAA）。適用於區網主機、NAS 或其他內部位址。"
+
+msgid "<strong>Public</strong> — resolve via the router upstream DNS (typically local DNS-over-HTTPS / your filtering resolver on 127.0.0.1#5053). Use when a name must follow public DNS (CDN, tunnel, external status page), especially if a private wildcard would otherwise catch it."
+msgstr "<strong>公開</strong> — 經路由器上游 DNS 解析（通常為本機 DNS-over-HTTPS／過濾解析器，127.0.0.1#5053）。適用於必須跟隨公網 DNS 的名稱（CDN、隧道、外部狀態頁），尤其是會被私人萬用字元規則攔截時。"
+
+msgid "Domain patterns:"
+msgstr "網域格式："
+
+msgid "single name"
+msgstr "單一主機名稱"
+
+msgid "all subdomains (not the zone apex)"
+msgstr "所有子網域（不含 zone 頂層名稱）"
+
+msgid "dnsmasq zone form for that domain tree"
+msgstr "dnsmasq 對該網域樹的 zone 寫法"
+
+msgid "More specific rows override wildcards (for example a single host IP wins over a wildcard)."
+msgstr "較具體的列會覆蓋萬用字元（例如單一主機 IP 優先於萬用字元）。"
+
+msgid "Save &amp; Apply writes configuration and restarts <strong>dnsmasq only</strong> (does not reload Wi-Fi)."
+msgstr "儲存並套用會寫入設定並<strong>只重新啟動 dnsmasq</strong>（不會重載 Wi-Fi）。"
+
+msgid "Rules"
+msgstr "規則"
+
+msgid "Enabled"
+msgstr "啟用"
+
+msgid "Domain"
+msgstr "網域"
+
+msgid "Domain is required"
+msgstr "必須填寫網域"
+
+msgid "Type"
+msgstr "類型"
+
+msgid "Private IP"
+msgstr "私人 IP"
+
+msgid "Public (upstream DNS)"
+msgstr "公開（上游 DNS）"
+
+msgid "IPv4 address"
+msgstr "IPv4 位址"
+
+msgid "DNS rewrites applied; dnsmasq restarted."
+msgstr "已套用 DNS 改寫；dnsmasq 已重新啟動。"
+
+msgid "Error: %s"
+msgstr "錯誤：%s"
+
+msgid "Grant access to local DNS rewrite configuration"
+msgstr "允許存取本機 DNS 改寫設定"

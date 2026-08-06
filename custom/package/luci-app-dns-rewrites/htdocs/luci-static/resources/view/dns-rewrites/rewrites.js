@@ -22,27 +22,24 @@ return view.extend({
 	},
 
 	render(cfgName) {
-		const m = new form.Map(cfgName || this.cfgName || 'dns_rewrite', _('DNS Rewrites'),
+		const desc =
 			_('Manage local name overrides for the router DNS resolver (dnsmasq).') +
 			'<br/><br/>' +
 			'<ul>' +
-			'<li>' + _('<strong>Private IP</strong> — answer with a fixed IPv4 address. ' +
-				'The name is treated as local (no public AAAA mixed in). ' +
-				'Use for hosts on your LAN, NAS, or other internal addresses.') + '</li>' +
-			'<li>' + _('<strong>Public</strong> — resolve via the router upstream DNS ' +
-				'(typically local DNS-over-HTTPS / your filtering resolver on 127.0.0.1#5053). ' +
-				'Use when a name must follow public DNS (CDN, tunnel, external status page), ' +
-				'especially if a private wildcard would otherwise catch it.') + '</li>' +
+			'<li>' + _('<strong>Private IP</strong> — answer with a fixed IPv4 address. The name is treated as local (no public AAAA mixed in). Use for hosts on your LAN, NAS, or other internal addresses.') + '</li>' +
+			'<li>' + _('<strong>Public</strong> — resolve via the router upstream DNS (typically local DNS-over-HTTPS / your filtering resolver on 127.0.0.1#5053). Use when a name must follow public DNS (CDN, tunnel, external status page), especially if a private wildcard would otherwise catch it.') + '</li>' +
 			'</ul>' +
 			_('Domain patterns:') +
 			'<ul>' +
-			'<li><code>host.example.com</code> — single name</li>' +
-			'<li><code>*.example.com</code> — all subdomains (not the apex <code>example.com</code>)</li>' +
-			'<li><code>.example.com</code> — zone form used by dnsmasq for that domain tree</li>' +
+			'<li><code>host.example.com</code> — ' + _('single name') + '</li>' +
+			'<li><code>*.example.com</code> — ' + _('all subdomains (not the zone apex)') + '</li>' +
+			'<li><code>.example.com</code> — ' + _('dnsmasq zone form for that domain tree') + '</li>' +
 			'</ul>' +
-			_('More specific rows override wildcards (for example a single host IP wins over <code>*.example.com</code>).') +
+			_('More specific rows override wildcards (for example a single host IP wins over a wildcard).') +
 			'<br/><br/>' +
-			_('Save &amp; Apply writes configuration and restarts <strong>dnsmasq only</strong> (does not reload Wi-Fi).'));
+			_('Save &amp; Apply writes configuration and restarts <strong>dnsmasq only</strong> (does not reload Wi-Fi).');
+
+		const m = new form.Map(cfgName || this.cfgName || 'dns_rewrite', _('DNS Rewrites'), desc);
 
 		const s = m.section(form.GridSection, 'rewrite', _('Rules'));
 		s.addremove = true;

@@ -1,6 +1,4 @@
 #!/bin/sh
-# Enable conf-dir for generated rewrite snippets. Site rewrites are live-only.
-
 . /lib/functions.sh
 
 [ -f /etc/config/dns_rewrite ] || {
@@ -10,11 +8,12 @@
 	uci -q commit dns_rewrite
 }
 
-# dnsmasq confdir (safe if already set)
 if [ -n "$(uci -q get dhcp.@dnsmasq[0])" ]; then
 	uci -q set dhcp.@dnsmasq[0].confdir='/etc/dnsmasq.d'
 	mkdir -p /etc/dnsmasq.d
 	uci -q commit dhcp
 fi
+
+[ -x /etc/init.d/dns-rewrite ] && /etc/init.d/dns-rewrite enable 2>/dev/null || true
 
 exit 0

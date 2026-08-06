@@ -1,34 +1,16 @@
 # luci-app-dns-rewrites
 
-OpenWrt package: LuCI **Network → DNS Rewrites** plus `/usr/sbin/dns-rewrite-apply`.
+OpenWrt package with LuCI UI and `dns-rewrite-apply` helper.
 
-## Types
-
-| Type | Effect |
-|------|--------|
-| Private IP | `address=/domain/ip` + `local=/domain/` |
-| Public | `server=/domain/127.0.0.1#5053` (local DoH / Gateway) |
-
-## Build (this monorepo)
-
-- Package lives in `custom/package/luci-app-dns-rewrites`
-- `prepare.sh` links it into `package/custom/`
-- Seed: `CONFIG_PACKAGE_luci-app-dns-rewrites=y`
-
-## Standalone feed (optional)
-
-Copy this directory into any feed tree (or publish as its own git repo) and:
+## Seed
 
 ```
-src-link dns_rewrites /path/to/parent   # parent contains luci-app-dns-rewrites/
+CONFIG_PACKAGE_luci-app-dns-rewrites=y
+CONFIG_PACKAGE_luci-i18n-dns-rewrites-zh-tw=y
 ```
 
-Or as a single-package feed root:
+`luci.mk` builds `luci-i18n-dns-rewrites-zh-tw` from `po/zh_Hant/dns-rewrites.po`.
 
-```
-src-link dns_rewrites /path/to/luci-app-dns-rewrites/..
-```
+## Layout
 
-## Site data
-
-`/etc/config/dns_rewrite` ships empty of hostnames. Configure on device or restore backup after flash.
+Standard LuCI application layout (`htdocs/`, `root/`, `po/`).

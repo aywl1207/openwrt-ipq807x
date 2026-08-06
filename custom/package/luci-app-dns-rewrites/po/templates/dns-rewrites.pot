@@ -1,0 +1,66 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "DNS Rewrites"
+msgstr ""
+
+msgid "Manage local name overrides for the router DNS resolver (dnsmasq)."
+msgstr ""
+
+msgid "<strong>Private IP</strong> — answer with a fixed IPv4 address. The name is treated as local (no public AAAA mixed in). Use for hosts on your LAN, NAS, or other internal addresses."
+msgstr ""
+
+msgid "<strong>Public</strong> — resolve via the router upstream DNS (typically local DNS-over-HTTPS / your filtering resolver on 127.0.0.1#5053). Use when a name must follow public DNS (CDN, tunnel, external status page), especially if a private wildcard would otherwise catch it."
+msgstr ""
+
+msgid "Domain patterns:"
+msgstr ""
+
+msgid "single name"
+msgstr ""
+
+msgid "all subdomains (not the zone apex)"
+msgstr ""
+
+msgid "dnsmasq zone form for that domain tree"
+msgstr ""
+
+msgid "More specific rows override wildcards (for example a single host IP wins over a wildcard)."
+msgstr ""
+
+msgid "Save &amp; Apply writes configuration and restarts <strong>dnsmasq only</strong> (does not reload Wi-Fi)."
+msgstr ""
+
+msgid "Rules"
+msgstr ""
+
+msgid "Enabled"
+msgstr ""
+
+msgid "Domain"
+msgstr ""
+
+msgid "Domain is required"
+msgstr ""
+
+msgid "Type"
+msgstr ""
+
+msgid "Private IP"
+msgstr ""
+
+msgid "Public (upstream DNS)"
+msgstr ""
+
+msgid "IPv4 address"
+msgstr ""
+
+msgid "DNS rewrites applied; dnsmasq restarted."
+msgstr ""
+
+msgid "Error: %s"
+msgstr ""
+
+msgid "Grant access to local DNS rewrite configuration"
+msgstr ""

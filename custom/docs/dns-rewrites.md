@@ -1,39 +1,20 @@
 # DNS Rewrites
 
-## Do we need a separate git project?
+## Package + seed
 
-| Option | When |
-|--------|------|
-| **Package in monorepo** `custom/package/luci-app-dns-rewrites` + **seed** | Default (this fork) |
-| **Own git repo / feed** | Reuse across many OpenWrt trees without copying |
+| Item | Value |
+|------|--------|
+| Package | `custom/package/luci-app-dns-rewrites` |
+| Seed | `CONFIG_PACKAGE_luci-app-dns-rewrites=y` |
+| i18n (zh-tw) | `CONFIG_PACKAGE_luci-i18n-dns-rewrites-zh-tw=y` |
+| Built from | `po/zh_Hant/dns-rewrites.po` via `luci.mk` → `dns-rewrites.zh-tw.lmo` |
 
-OpenWrt-native pattern: **package + `CONFIG_PACKAGE_…=y` in seed**, not only `files/` overlay.
+Uses standard LuCI application layout (`htdocs/`, `root/`, `po/`) and `feeds/luci/luci.mk`.
 
-## Build integration
+## Standalone project
 
-1. Source: `custom/package/luci-app-dns-rewrites/`
-2. `prepare.sh` → `materialize_packages` → `package/custom/luci-app-dns-rewrites/`
-3. Seed (`clean_seed.config`): `CONFIG_PACKAGE_luci-app-dns-rewrites=y`
-4. `required_symbols.txt` lists the same symbol for CI verify
+Copy `custom/package/luci-app-dns-rewrites` to its own repo/feed when needed.
 
-## Extract to standalone project
+## UI language
 
-```bash
-cp -a custom/package/luci-app-dns-rewrites /path/to/luci-app-dns-rewrites
-# feeds.conf:
-#   src-link dnsrw /path/to   # directory that contains luci-app-dns-rewrites/
-```
-
-## Runtime
-
-| Path | Role |
-|------|------|
-| LuCI Network → DNS Rewrites | UI |
-| `/etc/config/dns_rewrite` | UCI (site hosts = on-device) |
-| `/usr/sbin/dns-rewrite-apply` | Generate conf + restart dnsmasq |
-| `/etc/dnsmasq.d/10-dns-rewrites.conf` | Generated |
-
-| Type | dnsmasq |
-|------|---------|
-| Private IP | `address=` + `local=` |
-| Public | `server=/name/127.0.0.1#5053` |
+Set LuCI language to **正體中文** (zh-tw). Menu title and form strings load from the i18n package.

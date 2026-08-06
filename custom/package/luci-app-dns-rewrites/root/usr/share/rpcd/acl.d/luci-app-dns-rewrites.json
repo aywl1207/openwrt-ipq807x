@@ -5,7 +5,6 @@
 			"uci": [ "dns_rewrite", "aykc_dns", "dhcp" ],
 			"file": {
 				"/etc/dnsmasq.d/10-dns-rewrites.conf": [ "read" ],
-				"/etc/dnsmasq.d/10-aykc-rewrites.conf": [ "read" ],
 				"/usr/sbin/dns-rewrite-apply": [ "exec" ]
 			}
 		},
