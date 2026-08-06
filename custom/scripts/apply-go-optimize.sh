@@ -61,7 +61,7 @@ inject_feed_gogc() {
 }
 
 info "Go binary strip (-s -w)"
-for pkg in tailscale adguardhome cloudflared; do
+for pkg in tailscale cloudflared; do
   inject_go_strip "${pkg}"
 done
 

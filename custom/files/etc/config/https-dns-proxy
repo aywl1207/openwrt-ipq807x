@@ -1,0 +1,20 @@
+# DoH forwarder → Cloudflare Zero Trust Gateway (or any DoH URL).
+# Set resolver_url on the device (not committed as a tenant-specific hostname):
+#   uci set https-dns-proxy.@https-dns-proxy[0].resolver_url='https://<location>.cloudflare-gateway.com/dns-query'
+#   uci commit https-dns-proxy; /etc/init.d/https-dns-proxy restart
+
+config main 'config'
+	option canary_domains_icloud '0'
+	option canary_domains_mozilla '0'
+	option dnsmasq_config_update '*'
+	option force_dns '0'
+	option procd_trigger_wan6 '0'
+
+config https-dns-proxy
+	option bootstrap_dns '1.1.1.1,1.0.0.1'
+	# Empty in git — required on device before DNS works
+	option resolver_url ''
+	option listen_addr '127.0.0.1'
+	option listen_port '5053'
+	option user 'nobody'
+	option group 'nogroup'

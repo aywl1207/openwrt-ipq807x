@@ -37,7 +37,8 @@ DEVICE=qnap_301w ./custom/scripts/build.sh
 
 - `16_ensure_lan_dhcpv4` — only re-enables LAN DHCPv4 when LAN is static
 - `97-sqm-nss-optimize` — pin `nss-zk.qos`; classic qos off
-- `98-component-optimize` — zram + **AdGuard Home enable/start** (primary DNS)
+- `96-dns-gateway-mode` — dnsmasq + https-dns-proxy (Cloudflare Gateway; no AGH)
+- `98-component-optimize` — zram + pstore-save + mem-watch
 - `99-qol_nss_tailscale` — ECM/NSS offload prefs + Tailscale enable
 - `etc/rc.local` — **minimal** (`exit 0`); see [docs/SITE.md](docs/SITE.md)
 - `etc/sysctl.d/60-cloudflared-ping.conf` — `ping_group_range` for cloudflared

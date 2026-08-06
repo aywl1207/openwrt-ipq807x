@@ -1,117 +1,35 @@
-# Runtime / site configuration guide
+# Site notes (QNAP 301W / custom fork)
 
-Generic settings for this fork on IPQ807x (~1 GB). **Do not commit secrets** (passwords, tunnel tokens, status-push URLs, Wi‑Fi keys).
-
-| Layer | What belongs here |
-|-------|-------------------|
-| **Image (`custom/files/`)** | Defaults safe for every board: sysctl, empty `rc.local`, SQM/AGH UCI seeds, NSS QoS scripts |
-| **This doc** | How to operate; example commands with placeholders |
-| **On-device only** | Tokens, passwords, real WAN iface name, exact line rates, cron status URLs |
-
-Related: [COMPONENTS.md](COMPONENTS.md) (package knobs), [BUILD.md](BUILD.md) (images).
-
----
-
-## Boot policy (`rc.local`)
-
-**Prefer UCI + procd.** Do not patch `/etc/init.d/*` from `rc.local`.
-
-| Concern | Preferred place |
-|---------|-----------------|
-| cloudflared ICMP (QUIC/ICMP) | `sysctl.d` → `net.ipv4.ping_group_range` |
-| AdGuard Home start + RAM | `/etc/config/adguardhome` + `/etc/init.d/adguardhome enable` |
-| SQM | `/etc/config/sqm` + `/etc/init.d/sqm enable` (+ optional iface hotplug) |
-| mdns-repeater | UCI `mdns_repeater` + init enable |
-| Filter list refresh | **cron** (not every boot) |
-
-Stock image ships a **minimal** `/etc/rc.local` (`exit 0` only). Site-specific deferred jobs, if any, should stay thin.
-
-```sh
-# /etc/rc.local — preferred end state
-exit 0
-```
-
----
-
-## cloudflared
+## Production DNS (live stack)
 
 ```text
-# shipped as custom/files/etc/sysctl.d/60-cloudflared-ping.conf
-net.ipv4.ping_group_range = 0 65535
+LAN clients → dnsmasq:53 → https-dns-proxy:5053 → Cloudflare Gateway DoH
+Blocklists: Cloudflare Zero Trust (CGPS off-router) — not AdGuard Home
 ```
 
-- Keep tunnel **token** only on the router (`/etc/config/cloudflared`).
-- Log to `/tmp` when possible (less flash wear).
-- Do not enable in image defaults until a token exists.
-
----
-
-## AdGuard Home (primary DNS)
-
-### UCI (generic)
-
-```bash
-uci set adguardhome.config.gc='20'
-uci set adguardhome.config.maxprocs='2'
-uci set adguardhome.config.memlimit='201326592'   # 192 MiB, bytes
-# Intentional tmpfs workdir (OpenWrt /var -> /tmp): less flash wear
-uci set adguardhome.config.work_dir='/var/lib/adguardhome'
-uci commit adguardhome
-/etc/init.d/adguardhome enable
-/etc/init.d/adguardhome-filters enable   # EVERY boot: re-download filter lists
-/etc/init.d/adguardhome restart
-```
-
-- Use **package UCI** for `GOGC` / `GOMEMLIMIT` / `GOMAXPROCS`.  
-  **Never** `sed` `/etc/init.d/adguardhome` on boot.
-- **`work_dir=/var/lib/adguardhome`** sits on tmpfs by design (saves flash; querylog/stats do not thrash overlay).
-- **Must** enable `adguardhome-filters` (START=99): waits for AGH + WAN, then runs `filter-refresh.sh` on **every** boot.
-- `filter-refresh.sh` **restarts AGH before and after** each list update so RAM from large filter loads is released.
+- First-boot: `96-dns-gateway-mode` enables `https-dns-proxy` + dnsmasq port 53 / `server=127.0.0.1#5053`
+- **Device-only (never git):** Gateway `resolver_url`, DNS rewrites, Wi‑Fi keys, tunnel token, healthcheck URLs
+- Per-interface DHCP DNS for **iot/guest** is site-managed (not forced by overlay)
+- Do **not** re-add AGH without revisiting RAM budget
 
 ### RAM policy (1GB IPQ807x)
 
 | Do | Don't |
 |----|--------|
-| AGH: low `size_memory`, short stats, `file_enabled: false` if work_dir is tmpfs | `echo 3 > drop_caches` cron |
-| `filter-refresh.sh` restart AGH before+after list update | Blind nightly full reboot unless needed |
-| `agh-ram-guard` cron: restart AGH only if MemAvailable &lt; 80 MiB | Raise AGH `size_memory` / 30d stats on tmpfs |
-| sysctl `65-ram-opt.conf` (swappiness 80, min_free 32M) | Ignore SUnreclaim (~NSS tax) as “leak” |
-
-Recommended AGH yaml knobs (device-managed file):
-`querylog.interval: 6h`, `querylog.size_memory: 200`, `querylog.file_enabled: false`,
-`statistics.interval: 24h`, `dns.max_goroutines: 100`, `dns.upstream_mode: load_balance`,
-`filtering.max_http_size: 32MB`.
+| DNS via Gateway + thin `https-dns-proxy` | Re-install AGH with huge on-router lists |
+| sysctl `65-ram-opt.conf` (swappiness 80, min_free 32M) | `drop_caches` cron |
+| `mem-watch` + pstore after rebuild | Ignore SUnreclaim (~NSS tax) as “leak” |
 
 ### OOM / panic logs (after rebuild with kmod-pstore + kmod-ramoops)
 
 ```bash
-# After unexpected reboot:
 ls -la /root/crashlogs/
-cat /root/crashlogs/LAST          # path of last pstore harvest
+cat /root/crashlogs/LAST
 cat $(cat /root/crashlogs/LAST)/COMBINED.txt | less
-tail -100 /root/crashlogs/mem-watch.log   # RAM trend every 5 min
-ls /sys/fs/pstore/                # live pstore (empty after harvest)
-```
-- Until boot refresh finishes, blocking may be incomplete for a short window.
-
-### Filter refresh (boot every time + daily cron, secrets on device)
-
-```bash
-# Example — store auth outside the script if possible
-# /etc/adguardhome/api.env  (mode 600, NOT in git)
-#   AGH_URL=http://127.0.0.1:8081
-#   AGH_AUTH_HEADER='Authorization: Basic <base64 user:pass>'
-
-# boot: /etc/init.d/adguardhome-filters (START=99) — always refresh
-# cron (root), e.g. daily:
-# 0 20 * * * /etc/adguardhome/filter-refresh.sh
+tail -100 /root/crashlogs/mem-watch.log
 ```
 
 Do **not** run `echo 3 > /proc/sys/vm/drop_caches` on a 1 GB router as routine maintenance.
-
-### IPv6 DNS
-
-AGH should listen on IPv4 and IPv6 (`bind_hosts` include `0.0.0.0` and `::`) when LAN has GUA/ULA DNS options.
 
 ---
 
