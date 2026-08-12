@@ -2,6 +2,9 @@ name: Build IPQ807x NSS (fork)
 
 # Self-hosted multi-device image build.
 # All fork logic lives in custom/scripts — keep this workflow thin.
+#
+# Cache policy (self-hosted): never delete package download cache (dl/).
+# actions/checkout must use clean:false so git clean -ffdx does not wipe dl/.
 
 on:
   workflow_dispatch:
@@ -11,14 +14,34 @@ jobs:
     name: Prepare
     runs-on: self-hosted
     steps:
-      - name: Cleanup build folder (keep dl/)
+      - name: Cleanup build outputs (keep dl/ download cache)
         run: |
+          set -euo pipefail
+          echo "Before cleanup:"
+          ls -la ./ || true
+          # Wipe top-level entries except download cache.
+          # Do NOT remove: dl  (OpenWrt package tarballs / go-mod cache)
+          find . -maxdepth 1 ! -name 'dl' ! -name '.' ! -name '..' -exec rm -rf {} +
+          mkdir -p dl
+          echo "After cleanup (dl/ preserved):"
           ls -la ./
-          find . -maxdepth 1 ! -name 'dl' ! -name '.' -exec rm -rf {} +
-          ls -la ./
+          du -sh dl 2>/dev/null || true
 
       - name: Checkout
         uses: actions/checkout@v6.0.2
+        with:
+          # Default clean:true runs `git clean -ffdx` and deletes untracked dl/.
+          clean: false
+          # Avoid discarding local untracked caches when syncing the tree
+          # (self-hosted reuses the workdir between dispatches).
+
+      - name: Ensure dl/ still present after checkout
+        run: |
+          set -euo pipefail
+          mkdir -p dl
+          echo "dl/ status:"
+          ls -la dl | head -20 || true
+          du -sh dl 2>/dev/null || true
 
       - name: Git identity
         run: |
@@ -27,8 +50,15 @@ jobs:
 
       - name: Extract LLVM prebuilt
         run: |
-          wget -q https://downloads.openwrt.org/snapshots/targets/qualcommax/ipq807x/llvm-bpf-22.1.3.Linux-x86_64.tar.zst
-          tar --zstd -xf llvm-bpf-22.1.3.Linux-x86_64.tar.zst
+          set -euo pipefail
+          # Cache llvm tarball under dl/ so re-runs skip re-download when possible
+          LLVM_VER="llvm-bpf-22.1.3.Linux-x86_64.tar.zst"
+          LLVM_URL="https://downloads.openwrt.org/snapshots/targets/qualcommax/ipq807x/${LLVM_VER}"
+          mkdir -p dl
+          if [ ! -f "dl/${LLVM_VER}" ]; then
+            wget -q -O "dl/${LLVM_VER}" "${LLVM_URL}"
+          fi
+          tar --zstd -xf "dl/${LLVM_VER}"
 
       - name: Prepare fork (overlay + feeds + Go optimize)
         run: |
@@ -56,8 +86,12 @@ jobs:
     steps:
       - name: Download package sources
         run: |
+          set -euo pipefail
+          # Populate/reuse ./dl only — do not make clean (would wipe build trees
+          # for no benefit here; dl/ is never removed by make download).
           make download -j"$(nproc)" V=s || make download V=s
-          make clean
+          echo "dl/ after download:"
+          du -sh dl 2>/dev/null || true
 
   build_tools:
     name: Tools
