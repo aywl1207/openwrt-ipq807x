@@ -7,14 +7,14 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-dns-rewrites
-PKG_VERSION:=1.1.1
+PKG_VERSION:=1.1.3
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL-2.0-only
 PKG_MAINTAINER:=Custom
 
-LUCI_TITLE:=DNS Rewrites
-LUCI_DESCRIPTION:=Local DNS rewrite UI (private IPv4 or public via upstream DoH).
+LUCI_TITLE:=DNS Custom Rewrites
+LUCI_DESCRIPTION:=Local custom DNS rewrite UI (private IPv4 or public via upstream DoH).
 LUCI_DEPENDS:=+luci-base +dnsmasq
 LUCI_PKGARCH:=all
 

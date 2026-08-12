@@ -1,0 +1,155 @@
+#!/bin/sh
+# Wake-on-LAN API for Home Assistant
+# GET /cgi-bin/wol?target=NAME&token=TOKEN
+# GET /cgi-bin/wol?action=list&token=TOKEN
+# Auth also: header X-WOL-Token or Authorization: Bearer TOKEN
+
+export PATH="/usr/sbin:/usr/bin:/sbin:/bin"
+EWAKE="/usr/bin/etherwake"
+[ -x "$EWAKE" ] || EWAKE="/usr/bin/ether-wake"
+
+json_out() {
+	_code="$1"
+	_body="$2"
+	printf "Status: %s\r\n" "$_code"
+	printf "Content-Type: application/json\r\n"
+	printf "Cache-Control: no-store\r\n"
+	printf "\r\n"
+	printf "%s\n" "$_body"
+}
+
+qs="${QUERY_STRING:-}"
+get_qs() {
+	echo "$qs" | tr '&' '\n' | sed -n "s/^${1}=//p" | head -n1
+}
+
+urldecode() {
+	printf '%b' "$(echo "$1" | sed 's/+/ /g;s/%/\\x/g')"
+}
+
+tok_cfg=$(uci -q get wol_api.globals.token)
+enabled=$(uci -q get wol_api.globals.enabled)
+if [ "$enabled" = "0" ]; then
+	json_out "503 Service Unavailable" '{"ok":false,"error":"disabled"}'
+	exit 0
+fi
+if [ -z "$tok_cfg" ]; then
+	json_out "500 Internal Server Error" '{"ok":false,"error":"no token configured"}'
+	exit 0
+fi
+
+tok_q=$(get_qs token)
+tok_h="${HTTP_X_WOL_TOKEN:-}"
+tok_b="${HTTP_AUTHORIZATION:-}"
+case "$tok_b" in
+	[Bb]earer\ *) tok_b="${tok_b#* }" ;;
+	*) tok_b="" ;;
+esac
+tok="${tok_q:-${tok_h:-$tok_b}}"
+
+if [ "$tok" != "$tok_cfg" ]; then
+	logger -t wol-api "auth fail from ${REMOTE_ADDR:-?}"
+	json_out "401 Unauthorized" '{"ok":false,"error":"unauthorized"}'
+	exit 0
+fi
+
+action=$(get_qs action)
+[ -z "$action" ] && action="wake"
+target=$(get_qs target)
+target=$(urldecode "$target")
+mac_q=$(get_qs mac)
+mac_q=$(echo "$mac_q" | tr 'a-f' 'A-F')
+
+if [ "$action" = "list" ]; then
+	body='{"ok":true,"targets":['
+	first=1
+	i=0
+	while uci -q get wol_api.@target[$i] >/dev/null 2>&1; do
+		en=$(uci -q get wol_api.@target[$i].enabled)
+		if [ "$en" != "0" ]; then
+			n=$(uci -q get wol_api.@target[$i].name)
+			m=$(uci -q get wol_api.@target[$i].mac)
+			ifc=$(uci -q get wol_api.@target[$i].interface)
+			[ "$first" = 1 ] || body="${body},"
+			first=0
+			body="${body}{\"name\":\"${n}\",\"mac\":\"${m}\",\"interface\":\"${ifc}\"}"
+		fi
+		i=$((i + 1))
+	done
+	body="${body}]}"
+	json_out "200 OK" "$body"
+	exit 0
+fi
+
+mac=""
+ifc="br-lan2"
+bcast="1"
+name=""
+
+if [ -n "$target" ]; then
+	i=0
+	found=0
+	tl=$(echo "$target" | tr 'A-Z' 'a-z')
+	while uci -q get wol_api.@target[$i] >/dev/null 2>&1; do
+		n=$(uci -q get wol_api.@target[$i].name)
+		nl=$(echo "$n" | tr 'A-Z' 'a-z')
+		if [ "$nl" = "$tl" ]; then
+			en=$(uci -q get wol_api.@target[$i].enabled)
+			if [ "$en" = "0" ]; then
+				json_out "403 Forbidden" '{"ok":false,"error":"target disabled"}'
+				exit 0
+			fi
+			mac=$(uci -q get wol_api.@target[$i].mac)
+			ifc=$(uci -q get wol_api.@target[$i].interface)
+			[ -z "$ifc" ] && ifc="br-lan2"
+			bcast=$(uci -q get wol_api.@target[$i].broadcast)
+			[ -z "$bcast" ] && bcast="1"
+			name="$n"
+			found=1
+			break
+		fi
+		i=$((i + 1))
+	done
+	if [ "$found" != 1 ]; then
+		json_out "404 Not Found" "{\"ok\":false,\"error\":\"unknown target\",\"target\":\"${target}\"}"
+		exit 0
+	fi
+elif [ -n "$mac_q" ]; then
+	allow=$(uci -q get wol_api.globals.allow_mac)
+	if [ "$allow" != "1" ]; then
+		json_out "403 Forbidden" '{"ok":false,"error":"raw mac not allowed"}'
+		exit 0
+	fi
+	mac="$mac_q"
+	ifc=$(get_qs interface)
+	[ -z "$ifc" ] && ifc="br-lan2"
+	name="$mac"
+else
+	json_out "400 Bad Request" '{"ok":false,"error":"need target=NAME or action=list"}'
+	exit 0
+fi
+
+if ! echo "$mac" | grep -qiE '^([0-9a-f]{2}:){5}[0-9a-f]{2}$'; then
+	json_out "400 Bad Request" "{\"ok\":false,\"error\":\"bad mac\",\"mac\":\"${mac}\"}"
+	exit 0
+fi
+
+if [ ! -x "$EWAKE" ]; then
+	json_out "500 Internal Server Error" '{"ok":false,"error":"etherwake missing"}'
+	exit 0
+fi
+
+opts="-i $ifc"
+[ "$bcast" = "1" ] && opts="$opts -b"
+
+out=$($EWAKE $opts "$mac" 2>&1)
+rc=$?
+if [ "$rc" -eq 0 ]; then
+	logger -t wol-api "wake ok name=$name mac=$mac if=$ifc from=${REMOTE_ADDR:-?}"
+	json_out "200 OK" "{\"ok\":true,\"woke\":\"${name}\",\"mac\":\"${mac}\",\"interface\":\"${ifc}\",\"broadcast\":${bcast}}"
+else
+	out_e=$(echo "$out" | tr '\n' ' ' | sed "s/\"/'/g")
+	logger -t wol-api "wake fail name=$name mac=$mac rc=$rc out=$out_e"
+	json_out "500 Internal Server Error" "{\"ok\":false,\"error\":\"etherwake failed\",\"detail\":\"${out_e}\"}"
+fi
+exit 0

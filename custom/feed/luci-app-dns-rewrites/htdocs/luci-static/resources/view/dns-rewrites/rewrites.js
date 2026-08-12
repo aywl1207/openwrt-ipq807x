@@ -60,7 +60,7 @@ return view.extend({
 			'<br/><br/>' +
 			_('Save &amp; Apply updates the config. dnsmasq restarts only if the file changed (Wi-Fi is not touched).');
 
-		const m = new form.Map(CFG, _('DNS Rewrites'), desc);
+		const m = new form.Map(CFG, _('DNS Custom Rewrites'), desc);
 
 		/* ---- globals ---- */
 		const g = m.section(form.NamedSection, 'globals', 'dns_rewrite', _('Settings'));

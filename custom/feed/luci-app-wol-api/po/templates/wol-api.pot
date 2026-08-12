@@ -1,0 +1,106 @@
+# Template for luci-app-wol-api
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: luci-app-wol-api 1.0.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+
+msgid "WOL API"
+msgstr ""
+
+msgid "Token-protected Wake-on-LAN HTTP API for Home Assistant (and other automations)."
+msgstr ""
+
+msgid "Endpoint"
+msgstr ""
+
+msgid "list targets"
+msgstr ""
+
+msgid "send magic packet"
+msgstr ""
+
+msgid "Auth header"
+msgstr ""
+
+msgid "or"
+msgstr ""
+
+msgid "Packets are sent from this router on the chosen bridge (correct for cross-subnet WOL)."
+msgstr ""
+
+msgid "Home Assistant: use rest_command pointing at this URL."
+msgstr ""
+
+msgid "Note: stock menu “Wake on LAN” is for manual wake only; this page configures the API."
+msgstr ""
+
+msgid "API settings"
+msgstr ""
+
+msgid "Enable API"
+msgstr ""
+
+msgid "API token"
+msgstr ""
+
+msgid "long random secret"
+msgstr ""
+
+msgid "Required on every request. Keep private; HA stores it in rest_command."
+msgstr ""
+
+msgid "Allow raw MAC in URL"
+msgstr ""
+
+msgid "If enabled, ?mac=AA:BB:… works without a named target (less safe). Prefer named targets."
+msgstr ""
+
+msgid "Wake targets"
+msgstr ""
+
+msgid "Add target"
+msgstr ""
+
+msgid "Enabled"
+msgstr ""
+
+msgid "Name"
+msgstr ""
+
+msgid "Used as ?target=NAME (case-insensitive)."
+msgstr ""
+
+msgid "MAC"
+msgstr ""
+
+msgid "Interface"
+msgstr ""
+
+msgid "br-lan2"
+msgstr ""
+
+msgid "br-lan"
+msgstr ""
+
+msgid "Bridge that holds the target subnet (magic packet egress)."
+msgstr ""
+
+msgid "Broadcast"
+msgstr ""
+
+msgid "Use etherwake -b (recommended)."
+msgstr ""
+
+msgid "MAC is required"
+msgstr ""
+
+msgid "Invalid MAC (AA:BB:CC:DD:EE:FF)"
+msgstr ""
+
+msgid "Name is required"
+msgstr ""
+
+msgid "Use letters, numbers, . _ -"
+msgstr ""

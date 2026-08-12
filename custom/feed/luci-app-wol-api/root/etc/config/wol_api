@@ -1,0 +1,11 @@
+config wol_api 'globals'
+	option enabled '1'
+	option token ''
+	option allow_mac '0'
+
+config target
+	option name 'example-pc'
+	option mac '11:22:33:44:55:66'
+	option interface 'br-lan2'
+	option broadcast '1'
+	option enabled '0'

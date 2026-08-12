@@ -1,6 +1,6 @@
 {
 	"admin/network/dns_rewrites": {
-		"title": "DNS Rewrites",
+		"title": "DNS Custom Rewrites",
 		"order": 46,
 		"action": {
 			"type": "view",
