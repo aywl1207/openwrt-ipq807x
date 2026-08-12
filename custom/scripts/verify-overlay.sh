@@ -79,6 +79,12 @@ else
   log "FAIL missing custom/feed/luci-app-dns-rewrites"
   fail=$((fail + 1))
 fi
+if [[ -f "${CUSTOM_DIR}/feed/luci-app-wol-api/Makefile" ]]; then
+  log "OK  custom/feed/luci-app-wol-api (feed)"
+else
+  log "FAIL missing custom/feed/luci-app-wol-api"
+  fail=$((fail + 1))
+fi
 if grep -qE '^src-link[[:space:]]+custom_feed[[:space:]]+custom/feed' "${CUSTOM_DIR}/feeds.conf.append" 2>/dev/null; then
   log "OK  feeds.conf.append src-link custom_feed"
 else

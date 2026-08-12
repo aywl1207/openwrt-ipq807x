@@ -1,0 +1,109 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: luci-app-wol-api 1.0.2\n"
+"Language: zh_Hant\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgid "WOL API"
+msgstr "WOL API（喚醒）"
+
+msgid "Token-protected Wake-on-LAN HTTP API for Home Assistant (and other automations)."
+msgstr "提供 token 保護的 Wake-on-LAN HTTP API，供 Home Assistant 及其他自動化呼叫。"
+
+msgid "Endpoint"
+msgstr "端點"
+
+msgid "list targets"
+msgstr "列出目標"
+
+msgid "send magic packet"
+msgstr "發送魔法封包（喚醒）"
+
+msgid "Auth header"
+msgstr "驗證標頭"
+
+msgid "or"
+msgstr "或"
+
+msgid "Packets are sent from this router on the chosen bridge (correct for cross-subnet WOL)."
+msgstr "封包由本路由器在選定的橋接介面上送出（適合跨網段 WOL）。"
+
+msgid "Home Assistant: use rest_command pointing at this URL."
+msgstr "Home Assistant：請用 rest_command 指向此 URL。"
+
+msgid "Note: stock menu “Wake on LAN” is for manual wake only; this page configures the API."
+msgstr "說明：原廠選單「網路喚醒」僅供手動喚醒；本頁用來設定 API。"
+
+msgid "API settings"
+msgstr "API 設定"
+
+msgid "Enable API"
+msgstr "啟用 API"
+
+msgid "API token"
+msgstr "API 權杖"
+
+msgid "long random secret"
+msgstr "請使用夠長的隨機密鑰"
+
+msgid "Required on every request. Keep private; HA stores it in rest_command."
+msgstr "每次請求都需要。請保密；可存在 Home Assistant 的 rest_command 中。"
+
+msgid "Allow raw MAC in URL"
+msgstr "允許在 URL 直接傳 MAC"
+
+msgid "If enabled, ?mac=AA:BB:… works without a named target (less safe). Prefer named targets."
+msgstr "啟用後可用 ?mac=AA:BB:… 而不需命名目標（較不安全）。建議使用命名目標。"
+
+msgid "Wake targets"
+msgstr "喚醒目標"
+
+msgid "Add target"
+msgstr "新增目標"
+
+msgid "Enabled"
+msgstr "啟用"
+
+msgid "Name"
+msgstr "名稱"
+
+msgid "Used as ?target=NAME (case-insensitive)."
+msgstr "對應 ?target=NAME（不分大小寫）。"
+
+msgid "MAC"
+msgstr "MAC"
+
+msgid "Interface"
+msgstr "介面"
+
+msgid "L2 device used by etherwake (-i). Prefer the bridge that owns the target subnet."
+msgstr "etherwake 用的 L2 介面（-i）。請選目標所在網段的 bridge。"
+
+msgid "Broadcast"
+msgstr "廣播"
+
+msgid "Use etherwake -b (recommended)."
+msgstr "使用 etherwake -b（建議開啟）。"
+
+msgid "MAC is required"
+msgstr "請填寫 MAC"
+
+msgid "Invalid MAC (AA:BB:CC:DD:EE:FF)"
+msgstr "MAC 格式無效（AA:BB:CC:DD:EE:FF）"
+
+msgid "Name is required"
+msgstr "請填寫名稱"
+
+msgid "Use letters, numbers, . _ -"
+msgstr "僅限英數與 . _ -"
+
+msgid "down"
+msgstr "關閉"
+
+msgid "absent"
+msgstr "不存在"
+
+msgid "(no suitable device found)"
+msgstr "（找不到合適介面）"

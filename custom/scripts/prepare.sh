@@ -53,6 +53,16 @@ if [[ "${DO_FEEDS}" -eq 1 ]]; then
     die "luci-app-dns-rewrites not present after feeds install"
   fi
   log "OK luci-app-dns-rewrites feed package installed"
+  info "Install luci-app-wol-api from custom_feed"
+  if ! ./scripts/feeds install -p custom_feed luci-app-wol-api; then
+    ./scripts/feeds install luci-app-wol-api \
+      || die "feeds install luci-app-wol-api failed (is custom_feed linked?)"
+  fi
+  if [[ ! -f package/feeds/custom_feed/luci-app-wol-api/Makefile ]] \
+     && [[ ! -f feeds/custom_feed/luci-app-wol-api/Makefile ]]; then
+    die "luci-app-wol-api not present after feeds install"
+  fi
+  log "OK luci-app-wol-api feed package installed"
   ls -la package/feeds/custom_feed/ 2>/dev/null || ls -la feeds/custom_feed/ | head
   "${CUSTOM_SCRIPTS_DIR}/apply-go-optimize.sh"
 else

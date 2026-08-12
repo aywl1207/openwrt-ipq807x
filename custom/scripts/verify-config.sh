@@ -60,7 +60,8 @@ for s in \
   CONFIG_PACKAGE_ipq-wifi-qnap_301w \
   CONFIG_PACKAGE_kmod-fs-f2fs \
   CONFIG_PACKAGE_f2fs-tools \
-  CONFIG_PACKAGE_luci-app-dns-rewrites
+  CONFIG_PACKAGE_luci-app-dns-rewrites \
+  CONFIG_PACKAGE_luci-app-wol-api
 do
   if grep -q "^${s}=y$" "${CFG}"; then
     log "OK  ${s}=y (not modular-only)"

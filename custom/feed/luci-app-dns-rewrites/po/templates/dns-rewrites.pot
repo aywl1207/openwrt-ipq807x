@@ -1,7 +1,7 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=UTF-8"
 
-msgid "DNS Rewrites"
+msgid "DNS Custom Rewrites"
 msgstr ""
 
 msgid "Override DNS names on this router (dnsmasq)."

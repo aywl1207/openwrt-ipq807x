@@ -12,8 +12,11 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
+msgid "DNS Custom Rewrites"
+msgstr "DNS 自訂改寫"
+
 msgid "DNS Rewrites"
-msgstr "DNS 改寫"
+msgstr "DNS 自訂改寫"
 
 msgid "Override DNS names on this router (dnsmasq)."
 msgstr "在本機 dnsmasq 覆寫 DNS 名稱。"

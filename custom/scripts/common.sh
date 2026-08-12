@@ -140,6 +140,9 @@ force_device_rootfs_packages() {
     # Feed LuCI app (seed already sets these; re-assert post-defconfig)
     echo 'CONFIG_PACKAGE_luci-app-dns-rewrites=y'
     echo 'CONFIG_PACKAGE_luci-i18n-dns-rewrites-zh-tw=y'
+    echo 'CONFIG_PACKAGE_luci-app-wol-api=y'
+    echo 'CONFIG_PACKAGE_luci-i18n-wol-api-zh-tw=y'
+    echo 'CONFIG_PACKAGE_etherwake=y'
     # NSS SQM deps
     echo 'CONFIG_PACKAGE_sqm-scripts=y'
     echo 'CONFIG_PACKAGE_sqm-scripts-nss=y'
