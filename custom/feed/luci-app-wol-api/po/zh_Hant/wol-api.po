@@ -107,3 +107,9 @@ msgstr "不存在"
 
 msgid "(no suitable device found)"
 msgstr "（找不到合適介面）"
+
+msgid "Auth"
+msgstr "驗證"
+
+msgid "X-WOL-Token not supported by uhttpd"
+msgstr "uhttpd 不支援 X-WOL-Token"

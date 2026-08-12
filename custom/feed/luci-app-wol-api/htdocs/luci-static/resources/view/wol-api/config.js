@@ -49,8 +49,8 @@ return view.extend({
 			'<ul>' +
 			'<li><code>?action=list&amp;token=TOKEN</code> — ' + _('list targets') + '</li>' +
 			'<li><code>?target=NAME&amp;token=TOKEN</code> — ' + _('send magic packet') + '</li>' +
-			'<li>' + _('Auth header') + ': <code>X-WOL-Token: TOKEN</code> ' + _('or') +
-			' <code>Authorization: Bearer TOKEN</code></li>' +
+			'<li>' + _('Auth') + ': <code>?token=TOKEN</code> ' + _('or') +
+			' <code>Authorization: Bearer TOKEN</code> (' + _('X-WOL-Token not supported by uhttpd') + ')</li>' +
 			'</ul>' +
 			_('Packets are sent from this router on the chosen bridge (correct for cross-subnet WOL).') +
 			'<br/>' +

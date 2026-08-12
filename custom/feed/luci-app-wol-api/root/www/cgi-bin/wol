@@ -2,7 +2,13 @@
 # Wake-on-LAN API for Home Assistant
 # GET /cgi-bin/wol?target=NAME&token=TOKEN
 # GET /cgi-bin/wol?action=list&token=TOKEN
-# Auth also: header X-WOL-Token or Authorization: Bearer TOKEN
+#
+# Auth (any one works with OpenWrt uhttpd):
+#   ?token=TOKEN
+#   Authorization: Bearer TOKEN   ← use this for HA rest_command headers
+#   Authorization: TOKEN
+#
+# X-WOL-Token / other custom headers: NOT passed by uhttpd CGI → always fail.
 
 export PATH="/usr/sbin:/usr/bin:/sbin:/bin"
 EWAKE="/usr/bin/etherwake"
@@ -39,17 +45,36 @@ if [ -z "$tok_cfg" ]; then
 fi
 
 tok_q=$(get_qs token)
-tok_h="${HTTP_X_WOL_TOKEN:-}"
-tok_b="${HTTP_AUTHORIZATION:-}"
-case "$tok_b" in
-	[Bb]earer\ *) tok_b="${tok_b#* }" ;;
-	*) tok_b="" ;;
-esac
-tok="${tok_q:-${tok_h:-$tok_b}}"
+
+# Authorization (uhttpd exports HTTP_AUTHORIZATION; custom X-* headers are dropped)
+tok_a=""
+auth="${HTTP_AUTHORIZATION:-}"
+if [ -n "$auth" ]; then
+	auth=$(echo "$auth" | tr -d "\r")
+	# normalize: drop leading/trailing spaces
+	auth=$(echo "$auth" | sed "s/^ *//;s/ *$//")
+	# lower-case first word for comparison via busybox
+	first=$(echo "$auth" | cut -d" " -f1 | tr "A-Z" "a-z")
+	rest=$(echo "$auth" | cut -d" " -f2-)
+	if [ "$first" = "bearer" ] || [ "$first" = "token" ]; then
+		tok_a="$rest"
+	else
+		tok_a="$auth"
+	fi
+	tok_a=$(echo "$tok_a" | sed "s/^ *//;s/ *$//")
+fi
+
+if [ -n "$tok_q" ]; then
+	tok="$tok_q"
+elif [ -n "$tok_a" ]; then
+	tok="$tok_a"
+else
+	tok=""
+fi
 
 if [ "$tok" != "$tok_cfg" ]; then
-	logger -t wol-api "auth fail from ${REMOTE_ADDR:-?}"
-	json_out "401 Unauthorized" '{"ok":false,"error":"unauthorized"}'
+	logger -t wol-api "auth fail from ${REMOTE_ADDR:-?} (use ?token= or Authorization Bearer; X-WOL-Token unsupported by uhttpd)"
+	json_out "401 Unauthorized" '{"ok":false,"error":"unauthorized","hint":"use ?token= or Authorization: Bearer TOKEN (X-WOL-Token is not supported by uhttpd)"}'
 	exit 0
 fi
 
