@@ -76,12 +76,11 @@ if [ -f /etc/config/qos ]; then
 	uci -q commit qos 2>/dev/null || true
 fi
 
-# Service: enable for hotplug/LuCI. Start only if a queue is already on.
+# Enable the service so LuCI / hotplug work. Do NOT start here —
+# first-boot + WAN ifup racing nssmirred hangs the board.
+# 99-sqm-enabled starts SQM after carrier + NSS are ready.
 if [ -x /etc/init.d/sqm ]; then
 	/etc/init.d/sqm enable 2>/dev/null || true
-	if [ "$_any_enabled" -eq 1 ]; then
-		/etc/init.d/sqm start 2>/dev/null || true
-	fi
 fi
 
 exit 0

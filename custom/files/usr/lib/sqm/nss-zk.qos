@@ -256,16 +256,43 @@ add_nssfq_codel() {
 # Direction setup
 ###############################################################################
 
+_has_nsstbl() {
+	$TC qdisc show dev "$1" 2>/dev/null | grep -q nsstbl
+}
+
+_has_carrier() {
+	local dev="$1" car
+	[ -e "/sys/class/net/${dev}/carrier" ] || return 1
+	car=$(cat "/sys/class/net/${dev}/carrier" 2>/dev/null)
+	[ "$car" = "1" ]
+}
+
+_wait_nss() {
+	local i=0
+	while [ "$i" -lt 20 ]; do
+		if [ -d /sys/module/qca_nss_drv ] && [ -d /proc/sys/dev/nss ]; then
+			return 0
+		fi
+		sleep 1
+		i=$((i + 1))
+	done
+	sqm_error "_wait_nss: NSS driver not ready"
+	return 1
+}
+
 egress() {
 	local mtu
+
+	# Never tear down a live nsstbl — second start / ifup would race nssmirred.
+	if _has_nsstbl "$IFACE"; then
+		sqm_log "egress: nsstbl already on ${IFACE}, skip"
+		return 0
+	fi
 
 	[ -z "$ETARGET" ] && ETARGET="5ms"
 
 	mtu=$(calc_effective_mtu "egress")
 	[ -z "$ELIMIT" ] && ELIMIT=$(calc_limit ${UPLINK} ${mtu} ${MAXQLIMIT_MS})
-
-	# Replace any leftover root qdisc so start-after-start / LuCI restart works.
-	SILENT=1 $TC qdisc del dev ${IFACE} root 2>/dev/null
 
 	add_nsstbl ${IFACE} ${UPLINK} ${ESHAPER_BURST_DUR_US} ${mtu} || {
 		sqm_error "egress: failed to add nsstbl shaper"
@@ -282,6 +309,12 @@ egress() {
 ingress() {
 	local mtu
 
+	# Fully up already — do not delete ingress/nssmirred (IPQ807x panic).
+	if _has_nsstbl "$DEV"; then
+		sqm_log "ingress: nsstbl already on ${DEV}, skip"
+		return 0
+	fi
+
 	[ -z "$ITARGET" ] && ITARGET="5ms"
 
 	mtu=$(calc_effective_mtu "ingress")
@@ -295,21 +328,19 @@ ingress() {
 	fi
 	$IP link set dev $DEV up
 
-	# Remove stale ingress qdisc if present (deleting qdisc removes all filters).
-	SILENT=1 $TC qdisc del dev $IFACE ingress 2>/dev/null
-	# Replace leftover IFB root before adding the new shaper.
-	SILENT=1 $TC qdisc del dev $DEV root 2>/dev/null
-
-	$TC qdisc add dev $IFACE handle ffff: ingress || {
-		sqm_error "ingress: failed to add ingress qdisc"
-		return 1
-	}
-
-	$TC filter add dev $IFACE parent ffff: protocol all \
-		u32 match u32 0 0 action nssmirred redirect dev $DEV fromdev $IFACE || {
-		sqm_error "ingress: failed to add redirect filter"
-		return 1
-	}
+	# Only add ingress+nssmirred if missing. Never delete a live ingress
+	# qdisc — that is the act_nssmirred panic path on IPQ807x.
+	if ! $TC qdisc show dev $IFACE 2>/dev/null | grep -q 'ffff:'; then
+		$TC qdisc add dev $IFACE handle ffff: ingress || {
+			sqm_error "ingress: failed to add ingress qdisc"
+			return 1
+		}
+		$TC filter add dev $IFACE parent ffff: protocol all \
+			u32 match u32 0 0 action nssmirred redirect dev $DEV fromdev $IFACE || {
+			sqm_error "ingress: failed to add redirect filter"
+			return 1
+		}
+	fi
 
 	add_nsstbl ${DEV} ${DOWNLINK} ${ISHAPER_BURST_DUR_US} ${mtu} || {
 		sqm_error "ingress: failed to add nsstbl shaper"
@@ -362,6 +393,19 @@ sqm_start() {
 
 	DEV="ifb@${IFACE}"
 
+	# Boot / ifup race: skip until the wire is actually up. Hotplug retries.
+	if ! _has_carrier "$IFACE"; then
+		sqm_log "sqm_start: no carrier on ${IFACE}, defer"
+		return 0
+	fi
+
+	if _has_nsstbl "$IFACE" && _has_nsstbl "$DEV"; then
+		sqm_log "sqm_start: already active on ${IFACE} / ${DEV}"
+		return 0
+	fi
+
+	_wait_nss || return 1
+
 	ipt_log_restart
 	check_addr || return $?
 	sqm_prepare_script || return $?
@@ -399,18 +443,20 @@ sqm_stop() {
 	DEV="ifb@${IFACE}"
 	sqm_log "sqm_stop: tearing down SQM on ${IFACE} (${DEV})"
 
-	# Flat hierarchy: deleting root removes nsstbl + nssfq_codel in one call.
-	SILENT=1 $TC qdisc del dev $IFACE root 2>/dev/null
-
-	# Remove ingress qdisc (and all associated filters) so the next start
-	# can re-add nssmirred. Do NOT `ip link del` the IFB (NSS panic).
-	SILENT=1 $TC qdisc del dev $IFACE ingress 2>/dev/null
-
+	# Tear down shapers first, IFB last. Do NOT `ip link del` the IFB.
+	# Deleting ingress while WAN has carrier has panicked act_nssmirred;
+	# only drop ingress after the IFB is down and idle.
 	if [ -e /sys/devices/virtual/net/$DEV ]; then
 		SILENT=1 $TC qdisc del dev $DEV root 2>/dev/null
 		$IP link set dev $DEV down
-		sqm_log "sqm_stop: removed $DEV qdisc (device kept for reuse)"
 	fi
+	SILENT=1 $TC qdisc del dev $IFACE root 2>/dev/null
+	if ! _has_carrier "$IFACE"; then
+		SILENT=1 $TC qdisc del dev $IFACE ingress 2>/dev/null
+	else
+		sqm_debug "sqm_stop: leaving ingress on ${IFACE} (carrier up — NSS-safe)"
+	fi
+	sqm_log "sqm_stop: removed qdiscs (IFB kept)"
 
 	ipt_log_rewind
 

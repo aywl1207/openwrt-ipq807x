@@ -1,7 +1,7 @@
 #!/bin/sh
-# Start SQM when WAN device is up. Avoid restart/stop races that panic act_nssmirred.
-# nss-zk.qos names the IFB after the SQM UCI interface (usually logical "wan"),
-# NOT the hotplug $DEVICE (often 10g-2 / eth4). Check both.
+# Start SQM when WAN is really up. Never restart/stop (act_nssmirred panic).
+# nss-zk.qos names IFB after the SQM UCI interface, which may be logical
+# (wan) or physdev (10g-2). Check both. Defer until carrier + NSS exist.
 [ "$ACTION" = "ifup" ] || exit 0
 [ -x /etc/init.d/sqm ] || exit 0
 [ -f /etc/config/sqm ] || exit 0
@@ -37,10 +37,35 @@ _ifb_active() {
 	tc qdisc show dev "ifb@${name}" 2>/dev/null | grep -q nsstbl
 }
 
-if _ifb_active "$INTERFACE" || _ifb_active "$DEVICE"; then
+_dev_shaped() {
+	local name="$1"
+	[ -n "$name" ] || return 1
+	[ -d "/sys/class/net/${name}" ] || return 1
+	tc qdisc show dev "$name" 2>/dev/null | grep -q nsstbl
+}
+
+if _ifb_active "$INTERFACE" || _ifb_active "$DEVICE" \
+	|| _dev_shaped "$INTERFACE" || _dev_shaped "$DEVICE"; then
 	logger -t sqm-hotplug "ifup $INTERFACE/$DEVICE — SQM already active, skip"
 	exit 0
 fi
 
-logger -t sqm-hotplug "ifup $INTERFACE/$DEVICE — starting sqm (no full restart)"
+# Let NSS / ECM finish bind before attaching nssmirred.
+n=0
+while [ "$n" -lt 15 ]; do
+	if [ -d /sys/module/qca_nss_drv ] && [ -d /proc/sys/dev/nss ]; then
+		break
+	fi
+	sleep 1
+	n=$((n + 1))
+done
+sleep 3
+
+if _ifb_active "$INTERFACE" || _ifb_active "$DEVICE" \
+	|| _dev_shaped "$INTERFACE" || _dev_shaped "$DEVICE"; then
+	logger -t sqm-hotplug "ifup $INTERFACE/$DEVICE — became active while waiting, skip"
+	exit 0
+fi
+
+logger -t sqm-hotplug "ifup $INTERFACE/$DEVICE — starting sqm (no restart)"
 /etc/init.d/sqm start
