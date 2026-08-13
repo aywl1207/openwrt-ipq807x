@@ -8,7 +8,7 @@ Blocklists: Cloudflare Zero Trust (CGPS off-router) — not AdGuard Home
 ```
 
 - First-boot: `96-dns-gateway-mode` enables `https-dns-proxy` + dnsmasq port 53 / `server=127.0.0.1#5053`
-- **Device-only (never git):** Gateway `resolver_url`, DNS rewrites, Wi‑Fi keys, tunnel token, healthcheck URLs
+- Overlay ships public Cloudflare DoH so LAN DNS works immediately; **device-only (never git):** Gateway `resolver_url`, DNS rewrites, Wi‑Fi keys, tunnel token, healthcheck URLs
 - Per-interface DHCP DNS for **iot/guest** is site-managed (not forced by overlay)
 - Do **not** re-add AGH without revisiting RAM budget
 
@@ -17,7 +17,7 @@ Blocklists: Cloudflare Zero Trust (CGPS off-router) — not AdGuard Home
 | Do | Don't |
 |----|--------|
 | DNS via Gateway + thin `https-dns-proxy` | Re-install AGH with huge on-router lists |
-| sysctl `65-ram-opt.conf` (swappiness 80, min_free 32M) | `drop_caches` cron |
+| sysctl `65-ram-opt.conf` (swappiness 80, min_free 32M) + `99-net-perf.conf` | `drop_caches` cron |
 | `mem-watch` + pstore after rebuild | Ignore SUnreclaim (~NSS tax) as “leak” |
 
 ### OOM / panic logs (after rebuild with kmod-pstore + kmod-ramoops)
@@ -125,8 +125,9 @@ Use local backups (e.g. host-side `backups/qnap-301w/`) for full config dumps.
 ## Checklist after sysupgrade (keep-settings)
 
 1. `ping_group_range` → `sysctl net.ipv4.ping_group_range` shows `0	65535`  
-2. AGH running; UCI `gc`/`memlimit` as above; **no** sed lines in `/etc/init.d/adguardhome`  
-3. SQM enabled on correct iface; `tc -s qdisc` / NSS path healthy  
+2. `https-dns-proxy` running; `resolver_url` is Cloudflare public or your Gateway URL (not empty)  
+3. SQM enabled on correct iface; `tc -s qdisc` / NSS path healthy (`nss-zk.qos`)  
 4. Tailscale + LuCI app present if built into image  
 5. `rc.local` still minimal (or only your documented extras)  
-6. Cron: filter refresh + any health checks (secrets only on device)  
+6. Cron: `mem-watch.sh` + any health checks (secrets only on device)  
+7. `skb_recycler.opt.enable=1`, `network.globals.packet_steering=0`, CPU governor `performance`  

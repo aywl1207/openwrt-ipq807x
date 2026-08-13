@@ -2,6 +2,7 @@ NSS HW-accelerated SQM for IPQ807x (this fork).
 
 Requires: kmod-qca-nss-drv-qdisc, kmod-qca-nss-drv-igs, sqm-scripts-nss.
 Discipline: nssfq_codel only (cake/simple.qos software paths are NOT used).
+Hierarchy: nsstbl (shaper) → nssfq_codel (AQM), one tree per direction.
 
 Recommended LuCI settings:
   - Queue discipline: fq_codel
@@ -13,5 +14,6 @@ Recommended LuCI settings:
 
 Fork defaults inside this script:
   - codel interval 50ms if not overridden
-  - queue limit floor ≥400 packets (higher on multi-hundred Mbps)
-  - does not rmmod NSS modules on stop (safer with ECM)
+  - queue window 15ms (NSS firmware already buffers ~2×)
+  - never `ip link del` IFB or rmmod NSS modules (safer with ECM)
+  - deletes stale ingress/root before re-add so LuCI restart works

@@ -107,7 +107,7 @@ if [ "$action" = "list" ]; then
 fi
 
 mac=""
-ifc="br-lan2"
+ifc="br-lan"
 bcast="1"
 name=""
 
@@ -126,7 +126,7 @@ if [ -n "$target" ]; then
 			fi
 			mac=$(uci -q get wol_api.@target[$i].mac)
 			ifc=$(uci -q get wol_api.@target[$i].interface)
-			[ -z "$ifc" ] && ifc="br-lan2"
+			[ -z "$ifc" ] && ifc="br-lan"
 			bcast=$(uci -q get wol_api.@target[$i].broadcast)
 			[ -z "$bcast" ] && bcast="1"
 			name="$n"
@@ -147,7 +147,7 @@ elif [ -n "$mac_q" ]; then
 	fi
 	mac="$mac_q"
 	ifc=$(get_qs interface)
-	[ -z "$ifc" ] && ifc="br-lan2"
+	[ -z "$ifc" ] && ifc="br-lan"
 	name="$mac"
 else
 	json_out "400 Bad Request" '{"ok":false,"error":"need target=NAME or action=list"}'

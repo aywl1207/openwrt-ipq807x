@@ -28,7 +28,7 @@ custom/
     ├── LAYOUT.md          # this file
     ├── BUILD.md
     ├── COMPONENTS.md
-    └── SITE.md            # runtime / boot / SQM / AGH (no secrets)
+    └── SITE.md            # runtime / boot / SQM / DNS (no secrets)
 
 .github/workflows/
 ├── build-ipq807x.yml      # self-hosted image build (calls custom/scripts)

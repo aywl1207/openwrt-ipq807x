@@ -5,7 +5,7 @@
 | Issue | Symptom | Fix |
 |-------|---------|-----|
 | DEVICE_PACKAGES left as `=m` | RO root (`board.json` RO), NSS/ath11k `error -12`, no WiFi board data | `force_device_rootfs_packages` after defconfig; seed `=y` for `ipq-wifi-qnap_301w`, f2fs |
-| SQM auto-start + IFB delete | Reboot loop ~50s after boot (`act_nssmirred` panic) | SQM **default disabled**; `nss-zk.qos` never `ip link del ifb`; disable stock `11-sqm` hotplug race |
+| SQM auto-start + IFB delete | Reboot loop ~50s after boot (`act_nssmirred` panic) | SQM **default disabled**; `nss-zk.qos` never `ip link del ifb`; disable stock `11-sqm` hotplug race; 99-sqm-enabled matches IFB as `ifb@IFACE` (logical) |
 | pstore COMBINED.txt multi‑100MB | Overlay 100% full → settings not saved | `pstore-save` size caps + prune |
 | status-push | Optional, device-only | **Not** in image; put under `/etc/status-push.sh` + sysupgrade.conf on device |
 

@@ -1,5 +1,7 @@
 #!/bin/sh
 # Start SQM when WAN device is up. Avoid restart/stop races that panic act_nssmirred.
+# nss-zk.qos names the IFB after the SQM UCI interface (usually logical "wan"),
+# NOT the hotplug $DEVICE (often 10g-2 / eth4). Check both.
 [ "$ACTION" = "ifup" ] || exit 0
 [ -x /etc/init.d/sqm ] || exit 0
 [ -f /etc/config/sqm ] || exit 0
@@ -28,11 +30,16 @@ config_load sqm
 config_foreach _check_queue queue
 [ "$match" -eq 1 ] || exit 0
 
-if [ -n "$DEVICE" ] && [ -d "/sys/devices/virtual/net/ifb@${DEVICE}" ]; then
-	if tc qdisc show dev "ifb@${DEVICE}" 2>/dev/null | grep -q nsstbl; then
-		logger -t sqm-hotplug "ifup $INTERFACE/$DEVICE — SQM already active, skip"
-		exit 0
-	fi
+_ifb_active() {
+	local name="$1"
+	[ -n "$name" ] || return 1
+	[ -d "/sys/devices/virtual/net/ifb@${name}" ] || return 1
+	tc qdisc show dev "ifb@${name}" 2>/dev/null | grep -q nsstbl
+}
+
+if _ifb_active "$INTERFACE" || _ifb_active "$DEVICE"; then
+	logger -t sqm-hotplug "ifup $INTERFACE/$DEVICE — SQM already active, skip"
+	exit 0
 fi
 
 logger -t sqm-hotplug "ifup $INTERFACE/$DEVICE — starting sqm (no full restart)"

@@ -6,6 +6,6 @@ config wol_api 'globals'
 config target
 	option name 'example-pc'
 	option mac '11:22:33:44:55:66'
-	option interface 'br-lan2'
+	option interface 'br-lan'
 	option broadcast '1'
 	option enabled '0'

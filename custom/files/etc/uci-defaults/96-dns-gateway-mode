@@ -11,6 +11,15 @@ if [ -x /etc/init.d/https-dns-proxy ]; then
 	/etc/init.d/https-dns-proxy enable 2>/dev/null || true
 fi
 
+# Empty resolver_url (older overlay) leaves port 5053 dead and LAN DNS broken.
+if [ -n "$(uci -q get https-dns-proxy.@https-dns-proxy[0])" ]; then
+	_url="$(uci -q get https-dns-proxy.@https-dns-proxy[0].resolver_url)"
+	if [ -z "$_url" ]; then
+		uci -q set https-dns-proxy.@https-dns-proxy[0].resolver_url='https://cloudflare-dns.com/dns-query'
+		uci -q commit https-dns-proxy
+	fi
+fi
+
 # --- dnsmasq: serve DNS, forward to local DoH only ---------------------------
 if uci -q get dhcp.@dnsmasq[0] >/dev/null; then
 	uci -q set dhcp.@dnsmasq[0].port='53'

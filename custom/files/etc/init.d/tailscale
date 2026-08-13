@@ -35,7 +35,7 @@ start_service() {
   # Firewall backend (v1.48.1+). Default nftables; override in /etc/config/tailscale.
   procd_set_param env TS_DEBUG_FIREWALL_MODE="$fw_mode"
 
-  # Memory: aggressive GC + soft heap cap (leaves RAM for AdGuard / NSS / LuCI).
+  # Memory: aggressive GC + soft heap cap (leaves RAM for NSS / LuCI / DoH).
   procd_append_param env GOGC=10
   procd_append_param env GOMEMLIMIT=128MiB
   procd_append_param env TS_NO_LOGS_NO_SUPPORT=true

@@ -41,6 +41,8 @@ DEVICE=qnap_301w ./custom/scripts/build.sh
 - `96-dns-gateway-mode` — dnsmasq + https-dns-proxy (Cloudflare Gateway; no AGH)
 - `98-component-optimize` — zram + pstore-save + mem-watch
 - `99-qol_nss_tailscale` — ECM/NSS offload prefs + Tailscale enable
+- `99-nss-perf-pins` — packet_steering off, skb recycler on, performance governor (re-runs on keep-settings)
 - `etc/rc.local` — **minimal** (`exit 0`); see [docs/SITE.md](docs/SITE.md)
 - `etc/sysctl.d/60-cloudflared-ping.conf` — `ping_group_range` for cloudflared
+- `etc/sysctl.d/99-net-perf.conf` — conntrack 64k + local socket buffers
 - `etc/hotplug.d/iface/99-sqm-enabled` — SQM restart when WAN iface is up
