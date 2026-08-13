@@ -2,22 +2,33 @@
 # Multi-device first-boot wireless / system QoL (no DHCP changes).
 # DHCP policy lives only in 16_ensure_lan_dhcpv4.
 # NSS / Tailscale policy lives in 99-qol_nss_tailscale.
+# Keep-settings: never rewrite country or force-enable a radio the user disabled.
 
-[ -n "$(uci -q get wireless.radio0)" ] && uci -q set wireless.radio0.country='US'
-[ -n "$(uci -q get wireless.radio1)" ] && {
-	uci -q set wireless.radio1.country='US'
-	uci -q set wireless.radio1.disabled=0
+_set_if_empty() {
+	# $1=uci path  $2=value
+	[ -n "$(uci -q get "$1")" ] || uci -q set "$1=$2"
 }
-[ -n "$(uci -q get wireless.radio2)" ] && {
-	uci -q set wireless.radio2.country='US'
-	uci -q set wireless.radio2.disabled=0
-}
+
+if [ -n "$(uci -q get wireless.radio0)" ]; then
+	_set_if_empty wireless.radio0.country US
+fi
+if [ -n "$(uci -q get wireless.radio1)" ]; then
+	_set_if_empty wireless.radio1.country US
+	# Only un-disable on a brand-new radio (no disabled flag yet)
+	[ -z "$(uci -q get wireless.radio1.disabled)" ] && \
+		uci -q set wireless.radio1.disabled=0
+fi
+if [ -n "$(uci -q get wireless.radio2)" ]; then
+	_set_if_empty wireless.radio2.country US
+	[ -z "$(uci -q get wireless.radio2.disabled)" ] && \
+		uci -q set wireless.radio2.disabled=0
+fi
 uci -q commit wireless 2>/dev/null || true
 
-[ -n "$(uci -q get system.@system[0])" ] && {
-	uci -q set system.@system[0].cronloglevel='7'
+if [ -n "$(uci -q get system.@system[0])" ]; then
+	_set_if_empty system.@system[0].cronloglevel 7
 	uci -q commit system
-}
+fi
 
 # SQM defaults / NSS script pinning live in 97-sqm-nss-optimize
 

@@ -75,6 +75,15 @@ check_grep etc/config/https-dns-proxy 'listen_port.*5053'
 check_grep etc/config/https-dns-proxy 'resolver_url'
 check_grep etc/uci-defaults/96-dns-gateway-mode '127.0.0.1#5053'
 check_grep etc/uci-defaults/96-dns-gateway-mode 'https-dns-proxy'
+# Must not wipe keep-settings dnsmasq server= lists
+if grep -qE 'delete dhcp\.@dnsmasq\[0\]\.server' "${ROOT}/files/etc/uci-defaults/96-dns-gateway-mode" 2>/dev/null; then
+	log "FAIL 96-dns-gateway-mode wipes dnsmasq server list"
+	fail=1
+else
+	log "OK  96-dns-gateway-mode does not wipe server="
+fi
+check_grep etc/uci-defaults/16_ensure_lan_dhcpv4 'empty or .disabled'
+check_grep etc/uci-defaults/99-qol_wireless '_set_if_empty'
 
 # DNS rewrites: local feed package (custom/feed), selected via seed CONFIG_PACKAGE_*
 if [[ -f "${CUSTOM_DIR}/feed/luci-app-dns-rewrites/Makefile" ]]; then

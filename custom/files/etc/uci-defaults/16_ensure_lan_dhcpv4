@@ -5,8 +5,9 @@
 # is incomplete at run time, it leaves dhcpv4='disabled' and clients get no
 # address. When network.lan is static, keep the normal DHCPv4 server.
 #
-# This script only fixes the broken "disabled" case — it does not rewrite
-# start/limit/leasetime or touch WAN / other interfaces.
+# Keep-settings: only repair the broken empty/disabled case. Do not rewrite
+# start/limit/leasetime, do not touch WAN / other interfaces, do not clear
+# a deliberate dhcp.lan.ignore.
 
 [ -f /etc/config/dhcp ] || exit 0
 
@@ -24,16 +25,15 @@ if ! uci -q get dhcp.lan >/dev/null; then
 	EOF
 fi
 
-# Force DHCPv4 server when still disabled / empty
+# Only the 15_odhcpd breakage: empty or 'disabled' → server
 case "$(uci -q get dhcp.lan.dhcpv4)" in
 	server) ;;
-	*)
+	""|disabled)
 		uci -q set dhcp.lan.dhcpv4='server'
+		# ignore is part of the same broken first-boot combo
+		uci -q delete dhcp.lan.ignore 2>/dev/null || true
 		;;
 esac
-
-# Never "ignore" the LAN DHCP section
-uci -q delete dhcp.lan.ignore 2>/dev/null || true
 
 uci -q commit dhcp
 exit 0
