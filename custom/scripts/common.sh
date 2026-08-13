@@ -46,6 +46,8 @@ materialize_overlay() {
   # Executable policy for OpenWrt hooks
   find "${ROOT}/files/etc/init.d" "${ROOT}/files/etc/uci-defaults" -type f \
     -exec chmod +x {} \; 2>/dev/null || true
+  find "${ROOT}/files/etc/hotplug.d" "${ROOT}/files/usr/sbin" -type f \
+    -exec chmod +x {} \; 2>/dev/null || true
   find "${ROOT}/files/etc/config" "${ROOT}/files/etc/sysctl.d" -type f \
     -exec chmod 644 {} \; 2>/dev/null || true
   if [[ -f "${ROOT}/files/usr/lib/sqm/nss-zk.qos" ]]; then

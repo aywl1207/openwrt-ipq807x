@@ -48,9 +48,12 @@ info "Verify rootfs overlay"
 
 check_x etc/uci-defaults/16_ensure_lan_dhcpv4
 check_x etc/uci-defaults/96-dns-gateway-mode
+check_x etc/uci-defaults/96-https-dns-resolver-fallback
 check_x etc/uci-defaults/97-sqm-nss-optimize
 check_x etc/uci-defaults/98-component-optimize
+check_x etc/uci-defaults/98-disable-sqm-hotplug-race
 check_x etc/uci-defaults/99-qol_nss_tailscale
+check_x etc/uci-defaults/99-nss-perf-pins
 check_x etc/uci-defaults/99-qol_wireless
 check_x etc/init.d/tailscale
 check_x etc/init.d/cloudflared
@@ -60,6 +63,7 @@ check_file etc/config/sqm
 check_file etc/rc.local
 check_file etc/sysctl.d/60-cloudflared-ping.conf
 check_file etc/sysctl.d/65-ram-opt.conf
+check_file etc/sysctl.d/99-net-perf.conf
 check_file usr/lib/sqm/nss-zk.qos
 check_x etc/hotplug.d/iface/99-sqm-enabled
 check_x etc/init.d/pstore-save
@@ -106,7 +110,13 @@ check_grep etc/init.d/cloudflared 'GOGC=10'
 check_grep etc/config/sqm 'nss-zk.qos'
 check_grep etc/config/sqm "option enabled '0'"
 check_grep usr/lib/sqm/nss-zk.qos 'interval 50ms'
-check_grep usr/lib/sqm/nss-zk.qos 'leaving qca_nss_qdisc'
+check_grep usr/lib/sqm/nss-zk.qos 'keeping NSS modules loaded'
+check_grep etc/sysctl.d/99-net-perf.conf 'nf_conntrack_max'
+check_grep etc/uci-defaults/99-qol_nss_tailscale 'packet_steering'
+check_grep etc/uci-defaults/99-qol_nss_tailscale 'skb_recycler'
+check_grep etc/uci-defaults/99-nss-perf-pins 'packet_steering'
+check_grep etc/uci-defaults/99-nss-perf-pins 'skb_recycler'
+check_grep etc/config/https-dns-proxy 'cloudflare-dns.com'
 # Must not tear down IFB (NSS act_nssmirred panic / reboot loop)
 if grep -qE '^\s*\$IP link del \$DEV type ifb' "${ROOT}/files/usr/lib/sqm/nss-zk.qos" 2>/dev/null; then
   log "FAIL nss-zk.qos still deletes IFB (NSS panic risk)"
@@ -123,7 +133,7 @@ check_grep etc/rc.local '^exit 0'
 check_grep etc/sysctl.d/60-cloudflared-ping.conf 'ping_group_range'
 
 # Safety: first-boot scripts must not rewrite WAN / invent DHCP (except 16_ and 96-dns)
-for f in 97-sqm-nss-optimize 98-component-optimize 99-qol_nss_tailscale 99-qol_wireless; do
+for f in 97-sqm-nss-optimize 98-component-optimize 99-qol_nss_tailscale 99-nss-perf-pins 99-qol_wireless; do
   if grep -qE 'dhcp\.|network\.lan' "${ROOT}/files/etc/uci-defaults/${f}" 2>/dev/null; then
     log "FAIL ${f} must not touch dhcp/network.lan"
     fail=1

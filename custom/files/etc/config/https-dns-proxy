@@ -1,5 +1,6 @@
 # DoH forwarder → Cloudflare Zero Trust Gateway (or any DoH URL).
-# Set resolver_url on the device (not committed as a tenant-specific hostname):
+# Default resolver is public Cloudflare DoH (first-boot DNS works).
+# Override on the device with a tenant Gateway URL (not committed):
 #   uci set https-dns-proxy.@https-dns-proxy[0].resolver_url='https://<location>.cloudflare-gateway.com/dns-query'
 #   uci commit https-dns-proxy; /etc/init.d/https-dns-proxy restart
 
@@ -12,8 +13,10 @@ config main 'config'
 
 config https-dns-proxy
 	option bootstrap_dns '1.1.1.1,1.0.0.1'
-	# Empty in git — required on device before DNS works
-	option resolver_url ''
+	# Public Cloudflare DoH so first-boot DNS works. Override on-device
+	# with a Gateway URL (not committed):
+	#   uci set https-dns-proxy.@https-dns-proxy[0].resolver_url='https://<location>.cloudflare-gateway.com/dns-query'
+	option resolver_url 'https://cloudflare-dns.com/dns-query'
 	option listen_addr '127.0.0.1'
 	option listen_port '5053'
 	option user 'nobody'

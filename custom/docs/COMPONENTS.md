@@ -19,6 +19,7 @@ etc/config/https-dns-proxy          # Gateway DoH endpoint
 etc/config/{cloudflared,mdns_repeater,sqm}
 etc/sysctl.d/60-cloudflared-ping.conf
 etc/sysctl.d/65-ram-opt.conf
+etc/sysctl.d/99-net-perf.conf
 etc/uci-defaults/96-dns-gateway-mode
 etc/uci-defaults/98-component-optimize
 etc/init.d/pstore-save

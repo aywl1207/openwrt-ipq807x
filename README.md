@@ -13,7 +13,7 @@ Fork of [AgustinLorenzo/openwrt](https://github.com/AgustinLorenzo/openwrt) **NS
 | Category | Components |
 |----------|------------|
 | **VPN / mesh** | Tailscale — `-s -w` + `GOGC=10` / `GOMEMLIMIT=128MiB` + **LuCI** (`luci-app-tailscale-community`, zh-TW) |
-| **DNS / filter** | AdGuard Home — **primary DNS, auto-start** + RAM knobs |
+| **DNS / filter** | `https-dns-proxy` + dnsmasq → Cloudflare Gateway / public DoH (no AGH) |
 | **Tunnel** | cloudflared — optimized, disabled until configured |
 | **NSS offload** | nss-drv / ecm / crypto / eip-firmware; FW **12.5** |
 | **SQM / QoS** | **NSS** `nss-zk.qos` + `fq_codel`; classic qos-scripts off |
@@ -42,7 +42,7 @@ Config stack:
 
 | Path | Role |
 |------|------|
-| `custom/config/clean_seed.config` | Packages (Tailscale, AdGuard, Argon, NSS, …) |
+| `custom/config/clean_seed.config` | Packages (Tailscale, DoH, Argon, NSS, …) |
 | `custom/config/seed_ipq807x_1g.config` | `IPQ_MEM_PROFILE_1024`, NSS HIGH, ath11k NSS |
 | `custom/files/` | Rootfs overlay (`files/` is gitignored) |
 | `custom/scripts/` | prepare / build / verify / sync |

@@ -1,0 +1,15 @@
+#!/bin/sh
+# Re-runnable once per image: fill empty https-dns-proxy resolver_url.
+# 96-dns-gateway-mode already ran on existing keep-settings devices, so
+# this separate filename is required to fix first-boot DNS after upgrade.
+
+[ -f /etc/config/https-dns-proxy ] || exit 0
+uci -q get https-dns-proxy.@https-dns-proxy[0] >/dev/null || exit 0
+
+url="$(uci -q get https-dns-proxy.@https-dns-proxy[0].resolver_url)"
+if [ -z "$url" ]; then
+	uci -q set https-dns-proxy.@https-dns-proxy[0].resolver_url='https://cloudflare-dns.com/dns-query'
+	uci -q commit https-dns-proxy
+fi
+
+exit 0
