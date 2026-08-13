@@ -1,9 +1,9 @@
 #!/bin/sh
-# NSS SQM / QoS first-boot setup for IPQ807x.
+# NSS SQM / QoS first-boot / post-upgrade setup for IPQ807x.
 # - Prefer nss-zk.qos + fq_codel (hardware shaper)
 # - Keep classic qos-scripts OFF (conflicts / CPU-only)
-# - NEVER auto-enable SQM (user enables manually after flash)
-# - act_nssmirred panics if SQM stop/start races on ifup — keep off by default
+# - New queues default disabled (NSS panic-safe)
+# - NEVER rewrite .enabled on existing queues (keep-settings must survive)
 
 # Soft/hardware flow offload fights SQM + ECM — keep off (also in 99-qol_nss)
 [ -n "$(uci -q get firewall.@defaults[0])" ] && {
@@ -14,38 +14,42 @@
 
 [ -f /etc/config/sqm ] || touch /etc/config/sqm
 
-# Ensure wan queue exists with NSS defaults, always disabled
-if ! uci -q get sqm.wan >/dev/null 2>&1; then
+# Only seed a template when there is no queue at all. Do not recreate
+# dummy sqm.wan if the user already has wan_sqm (or any other instance).
+_any_queue=0
+for sid in $(uci -q show sqm | sed -n "s/^sqm\.\([^=]*\)=queue.*/\1/p"); do
+	_any_queue=1
+	break
+done
+
+if [ "$_any_queue" -eq 0 ]; then
 	uci -q batch <<-EOF
 		set sqm.wan=queue
 		set sqm.wan.enabled='0'
 		set sqm.wan.interface='wan'
 		set sqm.wan.download='0'
 		set sqm.wan.upload='0'
+		set sqm.wan.qdisc='fq_codel'
+		set sqm.wan.script='nss-zk.qos'
+		set sqm.wan.qdisc_advanced='1'
+		set sqm.wan.ingress_ecn='ECN'
+		set sqm.wan.egress_ecn='NOECN'
+		set sqm.wan.itarget='auto'
+		set sqm.wan.etarget='auto'
+		set sqm.wan.eqdisc_opts='interval 50ms'
+		set sqm.wan.iqdisc_opts='interval 50ms'
+		set sqm.wan.linklayer='none'
+		set sqm.wan.overhead='18'
 	EOF
 fi
 
-uci -q set sqm.wan.qdisc='fq_codel'
-uci -q set sqm.wan.script='nss-zk.qos'
-uci -q set sqm.wan.qdisc_advanced='1'
-uci -q set sqm.wan.qdisc_really_really_advanced='1'
-uci -q set sqm.wan.ingress_ecn='ECN'
-uci -q set sqm.wan.egress_ecn='NOECN'
-uci -q set sqm.wan.itarget='auto'
-uci -q set sqm.wan.etarget='auto'
-[ -z "$(uci -q get sqm.wan.eqdisc_opts)" ] && uci -q set sqm.wan.eqdisc_opts='interval 50ms'
-[ -z "$(uci -q get sqm.wan.iqdisc_opts)" ] && uci -q set sqm.wan.iqdisc_opts='interval 50ms'
-[ -z "$(uci -q get sqm.wan.linklayer)" ] && uci -q set sqm.wan.linklayer='none'
-[ -z "$(uci -q get sqm.wan.overhead)" ] && uci -q set sqm.wan.overhead='18'
-
-# Force ALL queues disabled on first-boot of this script (safe after bad flash)
-# User re-enables in LuCI when ready.
+# Pin NSS script/qdisc on every queue. Do not touch .enabled.
+_any_enabled=0
 for sid in $(uci -q show sqm | sed -n "s/^sqm\.\([^=]*\)=queue.*/\1/p"); do
-	uci -q set sqm.$sid.enabled='0'
 	script="$(uci -q get sqm.$sid.script)"
 	qdisc="$(uci -q get sqm.$sid.qdisc)"
 	case "$script" in
-		piece_of_cake.qos|layer_cake.qos|simple.qos|simplest.qos|simplest_tbf.qos)
+		piece_of_cake.qos|layer_cake.qos|simple.qos|simplest.qos|simplest_tbf.qos|"")
 			uci -q set sqm.$sid.script='nss-zk.qos'
 			uci -q set sqm.$sid.qdisc='fq_codel'
 			;;
@@ -56,12 +60,9 @@ for sid in $(uci -q show sqm | sed -n "s/^sqm\.\([^=]*\)=queue.*/\1/p"); do
 			uci -q set sqm.$sid.script='nss-zk.qos'
 			;;
 	esac
+	en="$(uci -q get sqm.$sid.enabled)"
+	[ "$en" = "1" ] && _any_enabled=1
 done
-
-# Pin wan script even if user will enable later
-uci -q set sqm.wan.script='nss-zk.qos'
-uci -q set sqm.wan.qdisc='fq_codel'
-uci -q set sqm.wan.enabled='0'
 
 uci -q commit sqm
 
@@ -75,10 +76,12 @@ if [ -f /etc/config/qos ]; then
 	uci -q commit qos 2>/dev/null || true
 fi
 
-# Keep sqm service enabled so manual LuCI enable + hotplug work later; do not start
+# Service: enable for hotplug/LuCI. Start only if a queue is already on.
 if [ -x /etc/init.d/sqm ]; then
 	/etc/init.d/sqm enable 2>/dev/null || true
-	/etc/init.d/sqm stop 2>/dev/null || true
+	if [ "$_any_enabled" -eq 1 ]; then
+		/etc/init.d/sqm start 2>/dev/null || true
+	fi
 fi
 
 exit 0
