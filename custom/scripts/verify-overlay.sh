@@ -59,6 +59,7 @@ check_x etc/init.d/tailscale
 check_x etc/init.d/cloudflared
 check_x etc/init.d/sqm-nss-defer
 check_grep etc/init.d/sqm-nss-defer 'START=99'
+check_grep etc/init.d/sqm-nss-defer 'sqm disable'
 check_grep etc/uci-defaults/97-sqm-nss-optimize 'sqm disable'
 check_file etc/config/https-dns-proxy
 check_file etc/config/cloudflared

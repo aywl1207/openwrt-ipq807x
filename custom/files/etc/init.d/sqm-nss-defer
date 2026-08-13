@@ -8,6 +8,8 @@ START=99
 start() {
 	[ -x /etc/init.d/sqm ] || return 0
 	[ -f /etc/config/sqm ] || return 0
+	# LuCI SQM Save re-enables stock S50; strip it every boot.
+	/etc/init.d/sqm disable 2>/dev/null || true
 	/etc/init.d/sqm start
 }
 
