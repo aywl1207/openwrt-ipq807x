@@ -126,6 +126,7 @@ else
 fi
 check_grep etc/init.d/pstore-save 'MAX_FILE_BYTES'
 check_grep etc/uci-defaults/97-sqm-nss-optimize "enabled='0'"
+check_grep etc/uci-defaults/97-sqm-nss-optimize 'Do not touch .enabled'
 # status-push is device-only (not in image)
 check_absent etc/uci-defaults/94-status-push
 check_absent usr/sbin/status-push.sh
