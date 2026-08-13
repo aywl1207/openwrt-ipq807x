@@ -76,11 +76,13 @@ if [ -f /etc/config/qos ]; then
 	uci -q commit qos 2>/dev/null || true
 fi
 
-# Enable the service so LuCI / hotplug work. Do NOT start here —
-# first-boot + WAN ifup racing nssmirred hangs the board.
-# 99-sqm-enabled starts SQM after carrier + NSS are ready.
+# Do NOT enable stock S50sqm — boot + WAN ifup race hangs NSS.
+# Hotplug (99-sqm-enabled) and S99 sqm-nss-defer start after carrier/NSS.
 if [ -x /etc/init.d/sqm ]; then
-	/etc/init.d/sqm enable 2>/dev/null || true
+	/etc/init.d/sqm disable 2>/dev/null || true
+fi
+if [ -x /etc/init.d/sqm-nss-defer ]; then
+	/etc/init.d/sqm-nss-defer enable 2>/dev/null || true
 fi
 
 exit 0
