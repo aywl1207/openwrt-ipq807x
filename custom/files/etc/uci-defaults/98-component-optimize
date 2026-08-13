@@ -1,13 +1,16 @@
 #!/bin/sh
 # Per-component first-boot tuning for IPQ807x ~1GB builds.
 # Safe defaults only — does not enable services that need user secrets.
+# Keep-settings: only fill unset knobs (do not clobber user zram / loglevel).
 
 # --- zram-swap ---------------------------------------------------------------
 # Default formula (MemTotal_KB/2048) ≈ 512MiB zram on 1GB boards — heavy with NSS.
 # Cap at 256MiB; use kernel default LZO-RLE (LZ4 backend not enabled in full_config).
 if [ -n "$(uci -q get system.@system[0])" ]; then
-	uci -q set system.@system[0].zram_size_mb='256'
-	uci -q set system.@system[0].zram_comp_algo='lzo-rle'
+	[ -z "$(uci -q get system.@system[0].zram_size_mb)" ] && \
+		uci -q set system.@system[0].zram_size_mb='256'
+	[ -z "$(uci -q get system.@system[0].zram_comp_algo)" ] && \
+		uci -q set system.@system[0].zram_comp_algo='lzo-rle'
 	uci -q commit system
 fi
 
@@ -15,8 +18,10 @@ fi
 
 # --- cloudflared (keep disabled; lighter logs when user enables) -------------
 if [ -n "$(uci -q get cloudflared.config)" ] || [ -f /etc/config/cloudflared ]; then
-	uci -q set cloudflared.config.loglevel='warn'
-	uci -q set cloudflared.config.logfile='/tmp/cloudflared.log'
+	[ -z "$(uci -q get cloudflared.config.loglevel)" ] && \
+		uci -q set cloudflared.config.loglevel='warn'
+	[ -z "$(uci -q get cloudflared.config.logfile)" ] && \
+		uci -q set cloudflared.config.logfile='/tmp/cloudflared.log'
 	# do not force enabled=1
 	uci -q commit cloudflared
 fi

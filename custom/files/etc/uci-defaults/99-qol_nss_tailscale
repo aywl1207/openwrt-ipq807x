@@ -37,7 +37,21 @@ if [ -f /etc/config/skb_recycler ] || [ -n "$(uci -q get skb_recycler.opt)" ]; t
 	uci -q commit skb_recycler
 fi
 
-# Tailscale present → enable on boot (user still runs: tailscale up)
-[ -x /etc/init.d/tailscale ] && /etc/init.d/tailscale enable
+# Tailscale: enable only if the user has not already chosen.
+# Keep-settings: do not re-enable after an explicit disable.
+if [ -x /etc/init.d/tailscale ]; then
+	if /etc/init.d/tailscale enabled 2>/dev/null; then
+		:
+	else
+		_ts_off=0
+		for _f in /etc/rc.d/K*tailscale; do
+			[ -e "$_f" ] && _ts_off=1
+		done
+		# State file means the device was already joined / configured
+		if [ "$_ts_off" -eq 0 ] && [ ! -f /etc/tailscale/tailscaled.state ]; then
+			/etc/init.d/tailscale enable
+		fi
+	fi
+fi
 
 exit 0
