@@ -1,0 +1,16 @@
+#!/bin/sh /etc/rc.common
+# Late SQM start for IPQ807x NSS. Stock S50sqm races WAN ifup / nssmirred.
+# Queue enable lives in UCI; this only calls start after boot is quiet.
+# nss-zk.qos is idempotent and skips when there is no carrier.
+
+START=99
+
+start() {
+	[ -x /etc/init.d/sqm ] || return 0
+	[ -f /etc/config/sqm ] || return 0
+	/etc/init.d/sqm start
+}
+
+stop() {
+	return 0
+}
