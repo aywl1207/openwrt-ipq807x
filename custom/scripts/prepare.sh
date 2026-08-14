@@ -63,6 +63,16 @@ if [[ "${DO_FEEDS}" -eq 1 ]]; then
     die "luci-app-wol-api not present after feeds install"
   fi
   log "OK luci-app-wol-api feed package installed"
+  info "Install udp-broadcast-relay-redux from custom_feed"
+  if ! ./scripts/feeds install -p custom_feed udp-broadcast-relay-redux; then
+    ./scripts/feeds install udp-broadcast-relay-redux \
+      || die "feeds install udp-broadcast-relay-redux failed (is custom_feed linked?)"
+  fi
+  if [[ ! -f package/feeds/custom_feed/udp-broadcast-relay-redux/Makefile ]] \
+     && [[ ! -f feeds/custom_feed/udp-broadcast-relay-redux/Makefile ]]; then
+    die "udp-broadcast-relay-redux not present after feeds install"
+  fi
+  log "OK udp-broadcast-relay-redux feed package installed"
   ls -la package/feeds/custom_feed/ 2>/dev/null || ls -la feeds/custom_feed/ | head
   "${CUSTOM_SCRIPTS_DIR}/apply-go-optimize.sh"
 else

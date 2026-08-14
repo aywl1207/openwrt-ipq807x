@@ -1,0 +1,48 @@
+#!/bin/sh /etc/rc.common
+
+START=90
+STOP=10
+USE_PROCD=1
+
+PROG=/usr/sbin/udp-broadcast-relay-redux
+
+append_dev() {
+	local net="$1" ifname
+	. /lib/functions/network.sh
+	network_flush_cache
+	network_get_device ifname "$net" || network_get_physdev ifname "$net" || ifname="$net"
+	[ -n "$ifname" ] || return 0
+	procd_append_param command --dev "$ifname"
+}
+
+start_instance() {
+	local id port multicast src_override dest_override
+
+	config_get id "$1" id
+	config_get port "$1" port
+	config_get multicast "$1" multicast
+	config_get src_override "$1" src_override
+	config_get dest_override "$1" dest_override
+
+	[ -n "$id" ] && [ -n "$port" ] || return 0
+
+	procd_open_instance
+	procd_set_param command "$PROG" --id "$id" --port "$port"
+	config_list_foreach "$1" network append_dev
+	[ -n "$multicast" ] && procd_append_param command --multicast "$multicast"
+	[ -n "$src_override" ] && procd_append_param command -s "$src_override"
+	[ -n "$dest_override" ] && procd_append_param command -t "$dest_override"
+	procd_set_param respawn
+	procd_set_param stdout 1
+	procd_set_param stderr 1
+	procd_close_instance
+}
+
+start_service() {
+	config_load udp_broadcast_relay_redux
+	config_foreach start_instance udp_broadcast_relay_redux
+}
+
+service_triggers() {
+	procd_add_reload_trigger udp_broadcast_relay_redux
+}
