@@ -1,0 +1,25 @@
+#!/bin/sh
+# IPv6: RA lifetime tracks PD; no ISP peerdns; stable hints; lan2 RA matches lan.
+# Keep-settings safe: do not rewrite a peerdns the user already set.
+
+_set_if_empty() {
+	local cfg="$1" opt="$2" val="$3"
+	[ -n "$(uci -q get "${cfg}")" ] || return 0
+	[ -n "$(uci -q get "${cfg}.${opt}")" ] && return 0
+	uci -q set "${cfg}.${opt}=${val}"
+}
+
+# Hardcoded 30m preferred can outlive a short ISP PD (~20–30m).
+uci -q delete dhcp.lan.preferred_lifetime
+uci -q delete dhcp.lan2.preferred_lifetime
+
+_set_if_empty network.wan6 peerdns 0
+_set_if_empty network.wan peerdns 0
+_set_if_empty network.wan6 norelease 1
+_set_if_empty dhcp.lan2 ra_preference medium
+_set_if_empty network.lan ip6hint 0
+_set_if_empty network.lan2 ip6hint 1
+
+uci -q commit dhcp
+uci -q commit network
+exit 0

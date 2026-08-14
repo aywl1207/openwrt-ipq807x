@@ -1,0 +1,14 @@
+#!/bin/sh
+# Avahi reflector replaces mdns-repeater (lan↔lan2 only). Never run both.
+if [ -x /etc/init.d/mdns-repeater ]; then
+	/etc/init.d/mdns-repeater stop >/dev/null 2>&1 || true
+	/etc/init.d/mdns-repeater disable >/dev/null 2>&1 || true
+fi
+[ -n "$(uci -q get mdns_repeater.main)" ] && {
+	uci -q set mdns_repeater.main.enabled='0'
+	uci -q commit mdns_repeater
+}
+if [ -x /etc/init.d/avahi-daemon ]; then
+	/etc/init.d/avahi-daemon enable >/dev/null 2>&1 || true
+fi
+exit 0

@@ -52,6 +52,9 @@ check_x etc/uci-defaults/96-https-dns-resolver-fallback
 check_x etc/uci-defaults/97-sqm-nss-optimize
 check_x etc/uci-defaults/98-component-optimize
 check_x etc/uci-defaults/98-disable-sqm-hotplug-race
+check_x etc/uci-defaults/98-avahi-mdns-reflector
+check_x etc/uci-defaults/98-ipv6-optimize
+check_x etc/init.d/avahi-daemon
 check_x etc/uci-defaults/99-qol_nss_tailscale
 check_x etc/uci-defaults/99-nss-perf-pins
 check_x etc/uci-defaults/99-qol_wireless
@@ -67,7 +70,7 @@ check_file etc/config/sqm
 check_file etc/rc.local
 check_file etc/sysctl.d/60-cloudflared-ping.conf
 check_file etc/sysctl.d/65-ram-opt.conf
-check_file etc/sysctl.d/99-net-perf.conf
+check_file etc/sysctl.d/zz-net-perf.conf
 check_file usr/lib/sqm/nss-zk.qos
 check_x etc/hotplug.d/iface/99-sqm-enabled
 check_x etc/init.d/pstore-save
@@ -108,12 +111,21 @@ else
   log "FAIL missing custom/feed/udp-broadcast-relay-redux"
   fail=$((fail + 1))
 fi
+if [[ -f "${CUSTOM_DIR}/patches/avahi/030-legacy-unicast-slots.patch" ]] \
+   && grep -q 'AVAHI_LEGACY_UNICAST_REFLECT_SLOTS_MAX 1024' \
+        "${CUSTOM_DIR}/patches/avahi/030-legacy-unicast-slots.patch"; then
+  log "OK  custom/patches/avahi/030-legacy-unicast-slots.patch"
+else
+  log "FAIL missing avahi legacy-unicast slots patch"
+  fail=$((fail + 1))
+fi
 if grep -qE '^src-link[[:space:]]+custom_feed[[:space:]]+custom/feed' "${CUSTOM_DIR}/feeds.conf.append" 2>/dev/null; then
   log "OK  feeds.conf.append src-link custom_feed"
 else
   log "FAIL feeds.conf.append missing src-link custom_feed"
   fail=$((fail + 1))
 fi
+check_absent etc/sysctl.d/99-net-perf.conf
 check_absent etc/config/aykc_dns
 check_absent usr/sbin/dns-rewrite-apply
 
@@ -134,7 +146,8 @@ check_grep usr/lib/sqm/nss-zk.qos '_has_nsstbl'
 check_grep usr/lib/sqm/nss-zk.qos 'no carrier'
 check_grep etc/hotplug.d/iface/99-sqm-enabled 'became active while waiting'
 check_grep etc/uci-defaults/97-sqm-nss-optimize 'Do NOT enable stock S50sqm'
-check_grep etc/sysctl.d/99-net-perf.conf 'nf_conntrack_max'
+check_grep etc/sysctl.d/zz-net-perf.conf 'nf_conntrack_max'
+check_grep etc/sysctl.d/zz-net-perf.conf 'send_redirects'
 check_grep etc/uci-defaults/99-qol_nss_tailscale 'packet_steering'
 check_grep etc/uci-defaults/99-qol_nss_tailscale 'skb_recycler'
 check_grep etc/uci-defaults/99-nss-perf-pins 'packet_steering'
@@ -150,6 +163,13 @@ fi
 check_grep etc/init.d/pstore-save 'MAX_FILE_BYTES'
 check_grep etc/uci-defaults/97-sqm-nss-optimize "enabled='0'"
 check_grep etc/uci-defaults/97-sqm-nss-optimize 'Do not touch .enabled'
+check_grep etc/avahi/avahi-daemon.conf 'enable-reflector=yes'
+check_grep etc/avahi/avahi-daemon.conf 'allow-interfaces=br-lan,br-lan2'
+check_grep etc/avahi/avahi-daemon.conf 'disable-publishing=yes'
+check_grep etc/uci-defaults/98-avahi-mdns-reflector 'mdns-repeater disable'
+check_grep etc/uci-defaults/98-ipv6-optimize 'preferred_lifetime'
+check_grep etc/uci-defaults/98-ipv6-optimize 'peerdns'
+check_grep etc/config/mdns_repeater "enabled '0'"
 # status-push is device-only (not in image)
 check_absent etc/uci-defaults/94-status-push
 check_absent usr/sbin/status-push.sh

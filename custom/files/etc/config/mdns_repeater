@@ -1,5 +1,6 @@
 
 config mdns_repeater 'main'
-	# Only bridge LAN by default — eth0.2 often does not exist on DSA boards
-	# and causes noisy restarts. Add WAN/guest interfaces via LuCI/UCI if needed.
+	# Replaced by Avahi reflector (lan↔lan2). Keep disabled if the package remains.
+	option enabled '0'
 	list interface 'br-lan'
+	list interface 'br-lan2'

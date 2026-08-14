@@ -1,0 +1,12 @@
+--- a/avahi-core/internal.h
++++ b/avahi-core/internal.h
+@@ -41,7 +41,9 @@
+ #include "dns-srv-rr.h"
+ 
+-#define AVAHI_LEGACY_UNICAST_REFLECT_SLOTS_MAX 100
++/* Windows/Android send mDNS from ephemeral ports; 100 slots overflow
++ * when lan↔lan2 reflects a browse storm (2s slot lifetime). */
++#define AVAHI_LEGACY_UNICAST_REFLECT_SLOTS_MAX 1024
+ 
+ #define AVAHI_FLAGS_VALID(flags, max) (!((flags) & ~(max)))
+ 

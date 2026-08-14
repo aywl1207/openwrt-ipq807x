@@ -78,12 +78,6 @@ msgstr ""
 msgid "Interface"
 msgstr ""
 
-msgid "br-lan2"
-msgstr ""
-
-msgid "br-lan"
-msgstr ""
-
 msgid "Bridge that holds the target subnet (magic packet egress)."
 msgstr ""
 

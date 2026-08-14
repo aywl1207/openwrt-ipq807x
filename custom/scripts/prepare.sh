@@ -75,6 +75,14 @@ if [[ "${DO_FEEDS}" -eq 1 ]]; then
   log "OK udp-broadcast-relay-redux feed package installed"
   ls -la package/feeds/custom_feed/ 2>/dev/null || ls -la feeds/custom_feed/ | head
   "${CUSTOM_SCRIPTS_DIR}/apply-go-optimize.sh"
+  avahi_slot_patch="${CUSTOM_DIR}/patches/avahi/030-legacy-unicast-slots.patch"
+  avahi_slot_dst="${ROOT}/feeds/packages/libs/avahi/patches/030-legacy-unicast-slots.patch"
+  if [[ -f "${avahi_slot_patch}" && -d "$(dirname "${avahi_slot_dst}")" ]]; then
+    cp -f "${avahi_slot_patch}" "${avahi_slot_dst}"
+    log "OK avahi legacy-unicast slots patch (1024)"
+  else
+    die "avahi slots patch missing or avahi package not installed"
+  fi
 else
   # Still verify overlay without touching feeds tree
   "${CUSTOM_SCRIPTS_DIR}/verify-overlay.sh"
