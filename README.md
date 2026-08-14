@@ -2,39 +2,40 @@
 
 [![Build IPQ807x NSS](https://github.com/aywl1207/openwrt-ipq807x/actions/workflows/build-ipq807x.yml/badge.svg?branch=custom_main_nss)](https://github.com/aywl1207/openwrt-ipq807x/actions/workflows/build-ipq807x.yml)
 
+OpenWrt is a Linux operating system targeting embedded devices. Instead of a
+single static firmware, it provides a fully writable filesystem with package
+management. That frees you from the vendor’s application selection and lets you
+customize the device with packages.
+
+Sunshine!
+
 # openwrt-ipq807x (`custom_main_nss`)
 
-Fork of [AgustinLorenzo/openwrt](https://github.com/AgustinLorenzo/openwrt) **NSS Wi‑Fi** tree, tuned for **Qualcomm IPQ807x routers with ~1 GB RAM**.
+Fork of [AgustinLorenzo/openwrt](https://github.com/AgustinLorenzo/openwrt)
+**NSS Wi‑Fi**, tuned for **Qualcomm IPQ807x boards with ~1 GB RAM**.
 
-**All fork-owned files live under [`custom/`](custom/)** — see [`custom/docs/LAYOUT.md`](custom/docs/LAYOUT.md).
+All fork-owned files live under [`custom/`](custom/). See
+[`custom/docs/LAYOUT.md`](custom/docs/LAYOUT.md).
 
-## Included tools & packages
+| | |
+|---|---|
+| **VPN** | Tailscale (`-s -w`, `GOGC=10`, LuCI zh-TW) |
+| **DNS** | dnsmasq + `https-dns-proxy` (public Cloudflare DoH in the image; Gateway URL stays on-device) |
+| **Tunnel** | cloudflared (disabled until configured) |
+| **NSS** | nss-drv / ecm / crypto / eip-firmware (FW **12.5**) |
+| **SQM** | `nss-zk.qos` + `fq_codel` (no cake / sw offload) |
+| **UI** | LuCI + Argon + Traditional Chinese |
+| **Net** | Avahi reflector, udp-broadcast-relay-redux, Cloudflare DDNS, drill, ipset |
+| **RAM** | zram 256 MiB lzo-rle, haveged |
 
-| Category | Components |
-|----------|------------|
-| **VPN / mesh** | Tailscale — `-s -w` + `GOGC=10` / `GOMEMLIMIT=128MiB` + **LuCI** (`luci-app-tailscale-community`, zh-TW) |
-| **DNS / filter** | `https-dns-proxy` + dnsmasq → Cloudflare Gateway / public DoH (no AGH) |
-| **Tunnel** | cloudflared — optimized, disabled until configured |
-| **NSS offload** | nss-drv / ecm / crypto / eip-firmware; FW **12.5** |
-| **SQM / QoS** | **NSS** `nss-zk.qos` + `fq_codel`; classic qos-scripts off |
-| **UI** | LuCI + **Argon** + Traditional Chinese |
-| **Network utils** | Cloudflare DDNS, avahi-nodbus (reflector), udp-broadcast-relay-redux, drill, ipset |
-| **Memory** | zram 256 MiB + lzo-rle; haveged |
+More: [`COMPONENTS.md`](custom/docs/COMPONENTS.md) · [`SITE.md`](custom/docs/SITE.md) (no secrets) · [`BUILD.md`](custom/docs/BUILD.md)
 
-Details: [`custom/docs/COMPONENTS.md`](custom/docs/COMPONENTS.md).  
-Runtime / boot / site config (no secrets): [`custom/docs/SITE.md`](custom/docs/SITE.md).
-
-## Quick build
+## Build
 
 ```bash
 ./custom/scripts/build.sh
-
-# Optional single board
-DEVICE=dynalink_dl-wrx36 ./custom/scripts/build.sh
 DEVICE=qnap_301w ./custom/scripts/build.sh
 ```
-
-Config stack:
 
 ```text
 .full_config → custom/config/clean_seed.config → custom/config/seed_ipq807x_1g.config → make defconfig
@@ -42,37 +43,51 @@ Config stack:
 
 | Path | Role |
 |------|------|
-| `custom/config/clean_seed.config` | Packages (Tailscale, DoH, Argon, NSS, …) |
-| `custom/config/seed_ipq807x_1g.config` | `IPQ_MEM_PROFILE_1024`, NSS HIGH, ath11k NSS |
-| `custom/files/` | Rootfs overlay (`files/` is gitignored) |
+| `custom/config/` | Package seed + 1GB / NSS knobs |
+| `custom/files/` | Rootfs overlay (materialized to gitignored `files/`) |
+| `custom/feed/` | Local packages (`src-link`) |
+| `custom/patches/` | Patches applied onto official feeds |
 | `custom/scripts/` | prepare / build / verify / sync |
-| `custom/PRESERVE.list` | Paths restored after upstream sync |
+| `custom/PRESERVE.list` | Restored after upstream sync |
 
-More: [`custom/docs/BUILD.md`](custom/docs/BUILD.md), [`custom/README.md`](custom/README.md).
+Upstream: Actions → **Sync upstream** when `upstream/main_nss` ≠ `custom/UPSTREAM_SHA`.
 
-## Upstream sync
+## Development
 
-Manual Actions → **Sync upstream**. Runs only when `upstream/main_nss` ≠ `custom/UPSTREAM_SHA` (or `force=true`).
-
-## Upstream OpenWrt
-
-OpenWrt is a Linux OS for embedded devices with a fully writable filesystem and package management.
-
-Sunshine!
+You need a GNU/Linux, BSD or macOS system (case-sensitive filesystem). Cygwin
+is unsupported.
 
 ### Requirements
 
-See [Build System Setup](https://openwrt.org/docs/guide-developer/build-system/install-buildsystem).
+Package names vary by distribution. See
+[Build System Setup](https://openwrt.org/docs/guide-developer/build-system/install-buildsystem).
 
 ```
 binutils bzip2 diff find flex gawk gcc-6+ getopt grep install libc-dev libz-dev
-make4.1+ perl python3.7+ rsync subversion unzip which
+make4.1+ perl python3.8+ rsync subversion unzip which
 ```
 
-### Support
+This fork’s entry point is `./custom/scripts/build.sh` (feeds, overlay, NSS
+seed). The stock `./scripts/feeds` + `make menuconfig` + `make` path still
+exists underneath.
 
+### Related repositories
+
+* [LuCI Web Interface](https://github.com/openwrt/luci)
+* [OpenWrt Packages](https://github.com/openwrt/packages)
+* [OpenWrt Routing](https://github.com/openwrt/routing)
+* [OpenWrt Video](https://github.com/openwrt/video)
+
+## Support
+
+* [Documentation](https://openwrt.org/docs/start)
+* [Hardware Database](https://openwrt.org/supported_devices)
 * [Forum](https://forum.openwrt.org)
 * [Bug Reports](https://bugs.openwrt.org)
+
+NSS / this fork: use this repository’s issues. Stock OpenWrt images from the
+[Firmware Selector](https://firmware-selector.openwrt.org/) do **not** include
+these NSS customizations.
 
 ## License
 
