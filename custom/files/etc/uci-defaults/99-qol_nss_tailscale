@@ -1,44 +1,7 @@
 #!/bin/sh
-# First-boot QoL for IPQ807x NSS + Tailscale builds (all 1GB-class boards).
-# Keep OpenWrt software/hardware flow offload OFF so ECM/NSS own acceleration.
+# First-boot Tailscale enable only.
+# NSS pins live in 99-nss-perf-pins (separate name so keep-settings re-applies them).
 
-[ -n "$(uci -q get firewall.@defaults[0])" ] && {
-	uci -q set firewall.@defaults[0].flow_offloading=0
-	uci -q set firewall.@defaults[0].flow_offloading_hw=0
-	uci -q commit firewall
-}
-
-[ -n "$(uci -q get ecm.@general[0])" ] && {
-	uci -q set ecm.@general[0].enable_bridge_filtering=0
-	uci -q commit ecm
-}
-
-# Software packet steering fights NSS RPS / IRQ pinning
-if [ -n "$(uci -q get network.globals)" ]; then
-	uci -q set network.globals.packet_steering='0'
-	uci -q delete network.globals.steering_flows 2>/dev/null || true
-	uci -q commit network
-fi
-
-[ -n "$(uci -q get pbuf.opt)" ] && {
-	uci -q set pbuf.opt.memory_profile=auto
-	uci -q set pbuf.opt.scaling_governor=performance
-	uci -q set pbuf.opt.auto_scale=off
-	uci -q commit pbuf
-}
-
-# SKB recycler: kernel is built with it, but shipped UCI defaults to off.
-# Enable on 1GB-class boards (high PPS / NSS).
-if [ -f /etc/config/skb_recycler ] || [ -n "$(uci -q get skb_recycler.opt)" ]; then
-	uci -q set skb_recycler.opt=skb_recycler
-	uci -q set skb_recycler.opt.enable='1'
-	[ -z "$(uci -q get skb_recycler.opt.max_skbs)" ] && uci -q set skb_recycler.opt.max_skbs='1024'
-	[ -z "$(uci -q get skb_recycler.opt.max_spare_skbs)" ] && uci -q set skb_recycler.opt.max_spare_skbs='256'
-	uci -q commit skb_recycler
-fi
-
-# Tailscale: enable only if the user has not already chosen.
-# Keep-settings: do not re-enable after an explicit disable.
 if [ -x /etc/init.d/tailscale ]; then
 	if /etc/init.d/tailscale enabled 2>/dev/null; then
 		:

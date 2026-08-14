@@ -1,6 +1,0 @@
-
-config mdns_repeater 'main'
-	# Replaced by Avahi reflector (lan↔lan2). Keep disabled if the package remains.
-	option enabled '0'
-	list interface 'br-lan'
-	list interface 'br-lan2'

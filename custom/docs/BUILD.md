@@ -19,12 +19,13 @@ DEVICE=dynalink_dl-wrx36 ./custom/scripts/build.sh
 ## Step-by-step
 
 ```bash
-./custom/scripts/prepare.sh --feeds
+./custom/scripts/prepare.sh --feeds     # also copies custom/patches/avahi onto the feed
 
 # or manually:
 # rsync -a custom/files/ files/
 # ./scripts/feeds update -a && ./scripts/feeds install -a
 # ./custom/scripts/apply-go-optimize.sh
+# cp custom/patches/avahi/*.patch feeds/packages/libs/avahi/patches/
 
 cp -f .full_config .config
 cat custom/config/clean_seed.config >> .config

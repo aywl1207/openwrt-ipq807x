@@ -18,7 +18,7 @@ Fork of [AgustinLorenzo/openwrt](https://github.com/AgustinLorenzo/openwrt) **NS
 | **NSS offload** | nss-drv / ecm / crypto / eip-firmware; FW **12.5** |
 | **SQM / QoS** | **NSS** `nss-zk.qos` + `fq_codel`; classic qos-scripts off |
 | **UI** | LuCI + **Argon** + Traditional Chinese |
-| **Network utils** | Cloudflare DDNS, mdns-repeater, udp-broadcast-relay-redux, drill, ipset |
+| **Network utils** | Cloudflare DDNS, avahi-nodbus (reflector), udp-broadcast-relay-redux, drill, ipset |
 | **Memory** | zram 256 MiB + lzo-rle; haveged |
 
 Details: [`custom/docs/COMPONENTS.md`](custom/docs/COMPONENTS.md).  

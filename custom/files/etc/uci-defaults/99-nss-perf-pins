@@ -1,7 +1,7 @@
 #!/bin/sh
-# One-shot after this image: pin NSS-friendly performance knobs.
-# Separate filename so keep-settings upgrades re-apply (99-qol_nss_tailscale
-# already ran on existing devices).
+# Pin NSS-friendly performance knobs on every image that ships this file.
+# Filename stays distinct from 99-qol_nss_tailscale (Tailscale enable only)
+# so keep-settings devices re-apply pins after an upgrade.
 
 [ -n "$(uci -q get firewall.@defaults[0])" ] && {
 	uci -q set firewall.@defaults[0].flow_offloading=0

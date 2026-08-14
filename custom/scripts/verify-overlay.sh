@@ -148,8 +148,7 @@ check_grep etc/hotplug.d/iface/99-sqm-enabled 'became active while waiting'
 check_grep etc/uci-defaults/97-sqm-nss-optimize 'Do NOT enable stock S50sqm'
 check_grep etc/sysctl.d/zz-net-perf.conf 'nf_conntrack_max'
 check_grep etc/sysctl.d/zz-net-perf.conf 'send_redirects'
-check_grep etc/uci-defaults/99-qol_nss_tailscale 'packet_steering'
-check_grep etc/uci-defaults/99-qol_nss_tailscale 'skb_recycler'
+check_grep etc/uci-defaults/99-qol_nss_tailscale 'tailscale enable'
 check_grep etc/uci-defaults/99-nss-perf-pins 'packet_steering'
 check_grep etc/uci-defaults/99-nss-perf-pins 'skb_recycler'
 check_grep etc/config/https-dns-proxy 'cloudflare-dns.com'
@@ -169,7 +168,7 @@ check_grep etc/avahi/avahi-daemon.conf 'disable-publishing=yes'
 check_grep etc/uci-defaults/98-avahi-mdns-reflector 'mdns-repeater disable'
 check_grep etc/uci-defaults/98-ipv6-optimize 'preferred_lifetime'
 check_grep etc/uci-defaults/98-ipv6-optimize 'peerdns'
-check_grep etc/config/mdns_repeater "enabled '0'"
+check_absent etc/config/mdns_repeater
 # status-push is device-only (not in image)
 check_absent etc/uci-defaults/94-status-push
 check_absent usr/sbin/status-push.sh
