@@ -4,9 +4,18 @@
 'require uci';
 'require fs';
 'require ui';
+'require rpc';
 
 const CONF_PREVIEW = '/etc/dnsmasq.d/10-dns-rewrites.conf';
 const CFG = 'dns_rewrite';
+
+/* Session overlay only — CLI `uci commit` cannot see LuCI Save. */
+const callUciCommit = rpc.declare({
+	object: 'uci',
+	method: 'commit',
+	params: [ 'config' ],
+	reject: true
+});
 
 /** Domain pattern: host, *.zone, or .zone (optional trailing dot stripped later). */
 function validateDomain(section_id, value) {
@@ -148,7 +157,12 @@ return view.extend({
 	},
 
 	handleSaveApply(ev, mode) {
+		/* handleSave() writes the rpcd session overlay only. Commit that
+		   package via ubus (not CLI), then generate dnsmasq conf.
+		   Skip ui.changes.apply() — it reloads network/wifi. */
 		return this.handleSave(ev).then(() => {
+			return callUciCommit(CFG);
+		}).then(() => {
 			return fs.exec('/usr/sbin/dns-rewrite-apply', []).then((res) => {
 				if (res && res.code && res.code !== 0)
 					throw new Error((res.stderr || res.stdout || 'apply failed').toString());
@@ -157,13 +171,14 @@ return view.extend({
 					? _('No change; dnsmasq not restarted.')
 					: _('Applied; dnsmasq restarted if needed.');
 				ui.addNotification(null, E('p', msg), 'info');
-				/* refresh preview without full navigation */
 				return L.resolveDefault(fs.read(CONF_PREVIEW), '').then((text) => {
 					const pre = document.querySelector('.cbi-section pre');
 					if (pre)
 						pre.textContent = text && String(text).length
 							? String(text)
 							: _('(not generated yet — use Save & Apply)');
+					if (ui.changes && typeof ui.changes.init === 'function')
+						return ui.changes.init();
 				});
 			});
 		}).catch((e) => {

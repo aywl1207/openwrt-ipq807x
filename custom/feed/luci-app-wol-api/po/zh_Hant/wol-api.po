@@ -1,7 +1,13 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: luci-app-wol-api 1.0.2\n"
+"Project-Id-Version: luci-app-wol-api 1.0.6\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-15 21:20+0800\n"
+"PO-Revision-Date: 2026-08-15 21:20+0800\n"
+"Last-Translator: \n"
+"Language-Team: Chinese (Traditional)\n"
 "Language: zh_Hant\n"
+"MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
@@ -21,8 +27,8 @@ msgstr "列出目標"
 msgid "send magic packet"
 msgstr "發送魔法封包（喚醒）"
 
-msgid "Auth header"
-msgstr "驗證標頭"
+msgid "Grant UCI access for luci-app-wol-api"
+msgstr "允許存取 WOL API 設定"
 
 msgid "or"
 msgstr "或"
@@ -113,3 +119,12 @@ msgstr "驗證"
 
 msgid "X-WOL-Token not supported by uhttpd"
 msgstr "uhttpd 不支援 X-WOL-Token"
+
+msgid "Save &amp; Apply writes the API config only (Wi-Fi is not touched)."
+msgstr "「儲存並套用」只寫入 API 設定（不影響 Wi-Fi）。"
+
+msgid "Saved. The WOL API uses the new settings immediately."
+msgstr "已儲存。WOL API 會即時使用新設定。"
+
+msgid "Error: %s"
+msgstr "錯誤：%s"

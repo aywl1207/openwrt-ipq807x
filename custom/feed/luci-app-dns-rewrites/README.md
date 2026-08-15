@@ -13,7 +13,7 @@ OpenWrt **feed package** (LuCI DNS Rewrites + apply helper).
 
 | Type | Generated dnsmasq |
 |------|-------------------|
-| Private IP | `address=` + `local=` |
+| Private IP | `address=` + `local=` + `rebind-domain-ok=` (else LAN clients get a rebind drop) |
 | Public | `server=/name/<upstream>` |
 
 **Upstream** (public rules), first match wins:
@@ -22,6 +22,9 @@ OpenWrt **feed package** (LuCI DNS Rewrites + apply helper).
 2. UCI `dns_rewrite.globals.upstream`
 3. `https-dns-proxy` listen_addr#listen_port
 4. `127.0.0.1#5053`
+
+LuCI **Save & Apply** ubus-commits `dns_rewrite` (session overlay) before
+running `dns-rewrite-apply`. CLI `uci commit` cannot see that overlay.
 
 Apply **only** ensures `dhcp.@dnsmasq[0].confdir` when unset; it does **not** wipe
 `server` / `address` / `cname` lists. dnsmasq restarts only when the generated

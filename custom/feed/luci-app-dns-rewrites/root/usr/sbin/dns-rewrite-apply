@@ -18,6 +18,10 @@ NO_RESTART=0
 
 . /lib/functions.sh 2>/dev/null || true
 
+# CLI overlay only (/tmp/.uci). LuCI Save lives in the rpcd session
+# dir — the UI must ubus-commit dns_rewrite before calling us.
+uci commit dns_rewrite >/dev/null 2>&1 || true
+
 OUT="${DNS_REWRITE_OUT:-/etc/dnsmasq.d/10-dns-rewrites.conf}"
 CFG="dns_rewrite"
 
@@ -105,6 +109,31 @@ fi
 
 config_load "$CFG"
 
+# Private IPv4 answers for public-looking names are dropped unless listed.
+# Collect unique zones, emit rebind-domain-ok first.
+_rebind_seen=" "
+rebind_zone() {
+	local z
+	z=$(echo "$1" | sed 's/^\*\.//;s/^\.//;s|^/||;s|/$||')
+	[ -n "$z" ] || return 0
+	case "$_rebind_seen" in
+	*" $z "*) return 0 ;;
+	esac
+	_rebind_seen="${_rebind_seen}${z} "
+	echo "rebind-domain-ok=/${z}/"
+}
+
+rebind_zone_from_sec() {
+	local enabled domain type
+	config_get_bool enabled "$1" enabled 1
+	[ "$enabled" -eq 1 ] || return 0
+	config_get type "$1" type private
+	[ "$type" = private ] || return 0
+	config_get domain "$1" domain
+	[ -n "$domain" ] || return 0
+	rebind_zone "$(normalize_domain "$domain")"
+}
+
 add_rewrite() {
 	local section="$1"
 	local enabled domain type ip comment host
@@ -132,7 +161,13 @@ add_rewrite() {
 	private|*)
 		[ -n "$ip" ] || return 0
 		case "$domain" in
-		\*.* | .*)
+		\*.*)
+			# dnsmasq zone form: leading-dot = name + subdomains
+			host="${domain#*.}"
+			echo "address=/.${host}/${ip}"
+			echo "local=/.${host}/"
+			;;
+		.*)
 			echo "address=/${domain}/${ip}"
 			echo "local=/${domain}/"
 			;;
@@ -157,7 +192,11 @@ add_rewrite() {
 	esac
 }
 
-config_foreach add_rewrite rewrite >>"$TMP"
+{
+	config_foreach rebind_zone_from_sec rewrite
+	echo
+	config_foreach add_rewrite rewrite
+} >>"$TMP"
 
 CONF_CHANGED=1
 if [ -f "$OUT" ] && cmp -s "$TMP" "$OUT" 2>/dev/null; then

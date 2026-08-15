@@ -4,8 +4,17 @@
 'require uci';
 'require ui';
 'require network';
+'require rpc';
 
 const CFG = 'wol_api';
+
+/* Session overlay only — CLI `uci commit` cannot see LuCI Save. */
+const callUciCommit = rpc.declare({
+	object: 'uci',
+	method: 'commit',
+	params: [ 'config' ],
+	reject: true
+});
 
 function validateMac(section_id, value) {
 	if (!value || !String(value).trim().length)
@@ -55,6 +64,8 @@ return view.extend({
 			_('Packets are sent from this router on the chosen bridge (correct for cross-subnet WOL).') +
 			'<br/>' +
 			_('Home Assistant: use rest_command pointing at this URL.') +
+			'<br/>' +
+			_('Save &amp; Apply writes the API config only (Wi-Fi is not touched).') +
 			'<br/><br/>' +
 			'<em>' + _('Note: stock menu “Wake on LAN” is for manual wake only; this page configures the API.') + '</em>';
 
@@ -143,5 +154,18 @@ return view.extend({
 		o.description = _('Use etherwake -b (recommended).');
 
 		return m.render();
+	},
+
+	handleSaveApply(ev, mode) {
+		/* Commit wol_api via ubus; skip ui.changes.apply() (network/wifi). */
+		return this.handleSave(ev).then(() => {
+			return callUciCommit(CFG);
+		}).then(() => {
+			ui.addNotification(null, E('p', _('Saved. The WOL API uses the new settings immediately.')), 'info');
+			if (ui.changes && typeof ui.changes.init === 'function')
+				return ui.changes.init();
+		}).catch((e) => {
+			ui.addNotification(null, E('p', _('Error: %s').format(e.message || e)), 'error');
+		});
 	}
 });

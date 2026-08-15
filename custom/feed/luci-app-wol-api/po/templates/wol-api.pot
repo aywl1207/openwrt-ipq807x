@@ -1,10 +1,10 @@
-# Template for luci-app-wol-api
-#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: luci-app-wol-api 1.0.0\n"
+"Project-Id-Version: luci-app-wol-api 1.0.6\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-15 21:20+0800\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-
+"Content-Transfer-Encoding: 8bit\n"
 
 msgid "WOL API"
 msgstr ""
@@ -21,16 +21,22 @@ msgstr ""
 msgid "send magic packet"
 msgstr ""
 
-msgid "Auth header"
+msgid "Auth"
 msgstr ""
 
 msgid "or"
+msgstr ""
+
+msgid "X-WOL-Token not supported by uhttpd"
 msgstr ""
 
 msgid "Packets are sent from this router on the chosen bridge (correct for cross-subnet WOL)."
 msgstr ""
 
 msgid "Home Assistant: use rest_command pointing at this URL."
+msgstr ""
+
+msgid "Save &amp; Apply writes the API config only (Wi-Fi is not touched)."
 msgstr ""
 
 msgid "Note: stock menu “Wake on LAN” is for manual wake only; this page configures the API."
@@ -78,7 +84,7 @@ msgstr ""
 msgid "Interface"
 msgstr ""
 
-msgid "Bridge that holds the target subnet (magic packet egress)."
+msgid "L2 device used by etherwake (-i). Prefer the bridge that owns the target subnet."
 msgstr ""
 
 msgid "Broadcast"
@@ -97,4 +103,22 @@ msgid "Name is required"
 msgstr ""
 
 msgid "Use letters, numbers, . _ -"
+msgstr ""
+
+msgid "down"
+msgstr ""
+
+msgid "absent"
+msgstr ""
+
+msgid "(no suitable device found)"
+msgstr ""
+
+msgid "Saved. The WOL API uses the new settings immediately."
+msgstr ""
+
+msgid "Error: %s"
+msgstr ""
+
+msgid "Grant UCI access for luci-app-wol-api"
 msgstr ""

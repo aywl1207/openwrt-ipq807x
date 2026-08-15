@@ -1,7 +1,15 @@
 msgid ""
-msgstr "Content-Type: text/plain; charset=UTF-8"
+msgstr ""
+"Project-Id-Version: luci-app-dns-rewrites 1.1.5\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-15 21:20+0800\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
 
 msgid "DNS Custom Rewrites"
+msgstr ""
+
+msgid "DNS Rewrites"
 msgstr ""
 
 msgid "Override DNS names on this router (dnsmasq)."

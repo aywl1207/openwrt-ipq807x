@@ -7,7 +7,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-dns-rewrites
-PKG_VERSION:=1.1.3
+PKG_VERSION:=1.1.5
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL-2.0-only

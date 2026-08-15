@@ -20,7 +20,7 @@ Do not put package trees under `custom/package` / `package/custom`.
 
 | Type | dnsmasq |
 |------|---------|
-| Private IP | `address=` + `local=` |
+| Private IP | `address=` + `local=` + `rebind-domain-ok=` (else LAN clients get a rebind drop) |
 | Public | `server=/name/<upstream>` |
 
 **Upstream** for public rules (first match):
@@ -29,6 +29,13 @@ Do not put package trees under `custom/package` / `package/custom`.
 2. UCI `dns_rewrite.globals.upstream`
 3. `https-dns-proxy` listen_addr#listen_port
 4. `127.0.0.1#5053`
+
+**Save & Apply** must ubus-commit `dns_rewrite` (LuCI session overlay) before
+`dns-rewrite-apply`. A CLI `uci commit` does not see that overlay, so the
+generated conf used to stay stale. The apply script still CLI-commits
+`/tmp/.uci` for non-LuCI callers. `init.d/dns-rewrite` is a procd oneshot
+with `procd_add_reload_trigger dns_rewrite` so a committed package also
+regenerates the conf.
 
 Apply is soft on `dhcp` UCI: only sets `confdir=/etc/dnsmasq.d` when **unset**.
 It does **not** clear `server` / `address` / `cname`. dnsmasq restarts only when

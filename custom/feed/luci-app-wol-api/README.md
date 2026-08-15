@@ -5,6 +5,9 @@ LuCI UI + CGI for token-protected Wake-on-LAN HTTP API (Home Assistant).
 - Config: `/etc/config/wol_api`
 - CGI: `/cgi-bin/wol` on uhttpd (port 8080)
 - Menu: **Services → WOL API**
+- zh-tw: `CONFIG_PACKAGE_luci-i18n-wol-api-zh-tw=y` (from `po/zh_Hant/`)
+- LuCI **Save & Apply** ubus-commits `wol_api` only (does not reload Wi-Fi).
+- CGI rejects non-netdev `interface=` values (no shell passthrough).
 
 ## Auth (OpenWrt uhttpd)
 

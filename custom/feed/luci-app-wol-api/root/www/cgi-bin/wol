@@ -24,13 +24,61 @@ json_out() {
 	printf "%s\n" "$_body"
 }
 
+json_esc() {
+	printf '%s' "$1" | sed 's/\\/\\\\/g;s/"/\\"/g' | tr -d '\r\n'
+}
+
+valid_name() {
+	echo "$1" | grep -qE '^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$'
+}
+
+valid_mac() {
+	echo "$1" | grep -qiE '^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$'
+}
+
+# etherwake -i must be a real netdev; never pass raw query/UCI through the shell.
+valid_iface() {
+	case "$1" in
+	""|*[^A-Za-z0-9_.:-]*) return 1 ;;
+	esac
+	[ -d "/sys/class/net/$1" ]
+}
+
 qs="${QUERY_STRING:-}"
 get_qs() {
 	echo "$qs" | tr '&' '\n' | sed -n "s/^${1}=//p" | head -n1
 }
 
+# Conservative %HH decode. Skip the loop when the value is already literal.
 urldecode() {
-	printf '%b' "$(echo "$1" | sed 's/+/ /g;s/%/\\x/g')"
+	local s="$1" out="" hex
+	case "$s" in
+	*%*|*"+"*) ;;
+	*) printf '%s' "$s"; return 0 ;;
+	esac
+	s=$(printf '%s' "$s" | sed 's/+/ /g')
+	while [ -n "$s" ]; do
+		case "$s" in
+		%??*)
+			hex=$(printf '%s' "$s" | cut -c2-3)
+			case "$hex" in
+			[0-9A-Fa-f][0-9A-Fa-f])
+				out="${out}$(printf "\\x${hex}")"
+				s=$(printf '%s' "$s" | cut -c4-)
+				;;
+			*)
+				out="${out}%"
+				s=$(printf '%s' "$s" | cut -c2-)
+				;;
+			esac
+			;;
+		*)
+			out="${out}$(printf '%s' "$s" | cut -c1)"
+			s=$(printf '%s' "$s" | cut -c2-)
+			;;
+		esac
+	done
+	printf '%s' "$out"
 }
 
 tok_cfg=$(uci -q get wol_api.globals.token)
@@ -51,9 +99,7 @@ tok_a=""
 auth="${HTTP_AUTHORIZATION:-}"
 if [ -n "$auth" ]; then
 	auth=$(echo "$auth" | tr -d "\r")
-	# normalize: drop leading/trailing spaces
 	auth=$(echo "$auth" | sed "s/^ *//;s/ *$//")
-	# lower-case first word for comparison via busybox
 	first=$(echo "$auth" | cut -d" " -f1 | tr "A-Z" "a-z")
 	rest=$(echo "$auth" | cut -d" " -f2-)
 	if [ "$first" = "bearer" ] || [ "$first" = "token" ]; then
@@ -97,7 +143,7 @@ if [ "$action" = "list" ]; then
 			ifc=$(uci -q get wol_api.@target[$i].interface)
 			[ "$first" = 1 ] || body="${body},"
 			first=0
-			body="${body}{\"name\":\"${n}\",\"mac\":\"${m}\",\"interface\":\"${ifc}\"}"
+			body="${body}{\"name\":\"$(json_esc "$n")\",\"mac\":\"$(json_esc "$m")\",\"interface\":\"$(json_esc "$ifc")\"}"
 		fi
 		i=$((i + 1))
 	done
@@ -112,6 +158,10 @@ bcast="1"
 name=""
 
 if [ -n "$target" ]; then
+	if ! valid_name "$target"; then
+		json_out "400 Bad Request" '{"ok":false,"error":"bad target"}'
+		exit 0
+	fi
 	i=0
 	found=0
 	tl=$(echo "$target" | tr 'A-Z' 'a-z')
@@ -136,7 +186,7 @@ if [ -n "$target" ]; then
 		i=$((i + 1))
 	done
 	if [ "$found" != 1 ]; then
-		json_out "404 Not Found" "{\"ok\":false,\"error\":\"unknown target\",\"target\":\"${target}\"}"
+		json_out "404 Not Found" "{\"ok\":false,\"error\":\"unknown target\",\"target\":\"$(json_esc "$target")\"}"
 		exit 0
 	fi
 elif [ -n "$mac_q" ]; then
@@ -147,6 +197,7 @@ elif [ -n "$mac_q" ]; then
 	fi
 	mac="$mac_q"
 	ifc=$(get_qs interface)
+	ifc=$(urldecode "$ifc")
 	[ -z "$ifc" ] && ifc="br-lan"
 	name="$mac"
 else
@@ -154,8 +205,13 @@ else
 	exit 0
 fi
 
-if ! echo "$mac" | grep -qiE '^([0-9a-f]{2}:){5}[0-9a-f]{2}$'; then
-	json_out "400 Bad Request" "{\"ok\":false,\"error\":\"bad mac\",\"mac\":\"${mac}\"}"
+if ! valid_mac "$mac"; then
+	json_out "400 Bad Request" "{\"ok\":false,\"error\":\"bad mac\",\"mac\":\"$(json_esc "$mac")\"}"
+	exit 0
+fi
+
+if ! valid_iface "$ifc"; then
+	json_out "400 Bad Request" "{\"ok\":false,\"error\":\"bad interface\",\"interface\":\"$(json_esc "$ifc")\"}"
 	exit 0
 fi
 
@@ -164,17 +220,16 @@ if [ ! -x "$EWAKE" ]; then
 	exit 0
 fi
 
-opts="-i $ifc"
-[ "$bcast" = "1" ] && opts="$opts -b"
-
-out=$($EWAKE $opts "$mac" 2>&1)
+set -- -i "$ifc"
+[ "$bcast" = "1" ] && set -- "$@" -b
+out=$("$EWAKE" "$@" "$mac" 2>&1)
 rc=$?
 if [ "$rc" -eq 0 ]; then
 	logger -t wol-api "wake ok name=$name mac=$mac if=$ifc from=${REMOTE_ADDR:-?}"
-	json_out "200 OK" "{\"ok\":true,\"woke\":\"${name}\",\"mac\":\"${mac}\",\"interface\":\"${ifc}\",\"broadcast\":${bcast}}"
+	json_out "200 OK" "{\"ok\":true,\"woke\":\"$(json_esc "$name")\",\"mac\":\"$(json_esc "$mac")\",\"interface\":\"$(json_esc "$ifc")\",\"broadcast\":${bcast}}"
 else
-	out_e=$(echo "$out" | tr '\n' ' ' | sed "s/\"/'/g")
+	out_e=$(echo "$out" | tr '\n' ' ' | tr -d '\r' | sed "s/\"/'/g")
 	logger -t wol-api "wake fail name=$name mac=$mac rc=$rc out=$out_e"
-	json_out "500 Internal Server Error" "{\"ok\":false,\"error\":\"etherwake failed\",\"detail\":\"${out_e}\"}"
+	json_out "500 Internal Server Error" "{\"ok\":false,\"error\":\"etherwake failed\",\"detail\":\"$(json_esc "$out_e")\"}"
 fi
 exit 0
