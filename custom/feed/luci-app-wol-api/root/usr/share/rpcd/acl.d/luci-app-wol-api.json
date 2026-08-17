@@ -5,7 +5,10 @@
 			"uci": [ "wol_api" ]
 		},
 		"write": {
-			"uci": [ "wol_api" ]
+			"uci": [ "wol_api" ],
+			"ubus": {
+				"uci": [ "commit" ]
+			}
 		}
 	}
 }

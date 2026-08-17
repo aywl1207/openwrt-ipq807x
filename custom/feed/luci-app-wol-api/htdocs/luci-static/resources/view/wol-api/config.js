@@ -88,6 +88,7 @@ return view.extend({
 
 		o = g.option(form.Flag, 'allow_mac', _('Allow raw MAC in URL'));
 		o.default = o.disabled;
+		o.rmempty = false;
 		o.description = _('If enabled, ?mac=AA:BB:… works without a named target (less safe). Prefer named targets.');
 
 		const s = m.section(form.GridSection, 'target', _('Wake targets'));
@@ -100,6 +101,7 @@ return view.extend({
 
 		o = s.option(form.Flag, 'enabled', _('Enabled'));
 		o.default = o.enabled;
+		o.rmempty = false;
 		o.editable = true;
 
 		o = s.option(form.Value, 'name', _('Name'));
@@ -150,6 +152,7 @@ return view.extend({
 		}
 		o = s.option(form.Flag, 'broadcast', _('Broadcast'));
 		o.default = o.enabled;
+		o.rmempty = false;
 		o.editable = true;
 		o.description = _('Use etherwake -b (recommended).');
 

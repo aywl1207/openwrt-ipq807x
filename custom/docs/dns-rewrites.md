@@ -33,9 +33,15 @@ Do not put package trees under `custom/package` / `package/custom`.
 **Save & Apply** must ubus-commit `dns_rewrite` (LuCI session overlay) before
 `dns-rewrite-apply`. A CLI `uci commit` does not see that overlay, so the
 generated conf used to stay stale. The apply script still CLI-commits
-`/tmp/.uci` for non-LuCI callers. `init.d/dns-rewrite` is a procd oneshot
-with `procd_add_reload_trigger dns_rewrite` so a committed package also
-regenerates the conf.
+`/tmp/.uci` for non-LuCI callers. luci-base does not allow `uci.commit`;
+the app ACL must grant `ubus.uci = [ commit ]` or Save & Apply gets
+Access denied.
+
+The page button, the top-bar change list, and `uci commit dns_rewrite`
+must all regenerate `/etc/dnsmasq.d/10-dns-rewrites.conf`.
+`init.d/dns-rewrite` is a procd oneshot with `procd_add_reload_trigger`.
+If the image still has ucitrack, uci-defaults also maps
+`dns_rewrite` → `dns-rewrite` for `/sbin/reload_config`.
 
 Apply is soft on `dhcp` UCI: only sets `confdir=/etc/dnsmasq.d` when **unset**.
 It does **not** clear `server` / `address` / `cname`. dnsmasq restarts only when

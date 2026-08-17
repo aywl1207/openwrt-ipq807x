@@ -105,6 +105,7 @@ return view.extend({
 
 		o = s.option(form.Flag, 'enabled', _('Enabled'));
 		o.default = o.enabled;
+		o.rmempty = false;
 		o.editable = true;
 
 		o = s.option(form.Value, 'domain', _('Domain'));

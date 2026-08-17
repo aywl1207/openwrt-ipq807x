@@ -27,6 +27,14 @@ fi
 
 [ -x /etc/init.d/dns-rewrite ] && /etc/init.d/dns-rewrite enable 2>/dev/null || true
 
+# Only if the image still ships ucitrack (older LuCI). SNAPSHOT uses
+# procd config.change from init.d/dns-rewrite instead.
+if [ -f /etc/config/ucitrack ] && ! uci -q show ucitrack | grep -q "dns_rewrite"; then
+	uci -q add ucitrack dns_rewrite
+	uci -q set ucitrack.@dns_rewrite[-1].init='dns-rewrite'
+	uci -q commit ucitrack
+fi
+
 # Generate conf once if apply is available (no dnsmasq restart here; boot order handles it)
 [ -x /usr/sbin/dns-rewrite-apply ] && /usr/sbin/dns-rewrite-apply --no-restart >/dev/null 2>&1 || true
 

@@ -10,6 +10,9 @@
 		},
 		"write": {
 			"uci": [ "dns_rewrite" ],
+			"ubus": {
+				"uci": [ "commit" ]
+			},
 			"file": {
 				"/usr/sbin/dns-rewrite-apply": [ "exec" ]
 			}
