@@ -13,7 +13,8 @@ custom/
 │   └── udp-broadcast-relay-redux/
 ├── patches/               # copied onto official feeds after `prepare.sh --feeds`
 │   ├── avahi/             # legacy-unicast slot count
-│   └── attr/              # local struct xattr_args for Linux 6.12 headers
+│   ├── attr/              # local struct xattr_args for Linux 6.12 headers
+│   └── acl/               # same struct, acl's own libmisc/xattrat.c
 ├── README.md              # short maintainer index
 ├── config/
 │   ├── clean_seed.config  # package enable/disable (CONFIG_PACKAGE_* only)

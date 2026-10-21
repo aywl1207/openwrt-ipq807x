@@ -107,17 +107,20 @@ if [[ "${DO_FEEDS}" -eq 1 ]]; then
   else
     die "avahi slots patch missing or avahi package not installed"
   fi
-  # attr 2.6.0 compiles *xattrat because musl defines the syscall numbers.
-  # Kernel 6.12 uapi has no struct xattr_args. Re-copy after every reset.
-  attr_xattr_patch="${CUSTOM_DIR}/patches/attr/001-xattrat-local-args.patch"
-  attr_xattr_dst="${ROOT}/feeds/packages/utils/attr/patches/001-xattrat-local-args.patch"
-  if [[ -f "${attr_xattr_patch}" && -d "${ROOT}/feeds/packages/utils/attr" ]]; then
-    mkdir -p "$(dirname "${attr_xattr_dst}")"
-    cp -f "${attr_xattr_patch}" "${attr_xattr_dst}"
-    log "OK attr local struct xattr_args (Linux 6.12 headers)"
-  else
-    die "attr xattr patch missing or attr package not in feeds/packages"
-  fi
+  # attr 2.6.0 and acl 2.4.0 compile *xattrat because musl defines the
+  # syscall numbers. Kernel 6.12 uapi has no struct xattr_args.
+  # Re-copy after every reset. The two sources differ by one include.
+  for pkg in attr acl; do
+    xattr_patch="${CUSTOM_DIR}/patches/${pkg}/001-xattrat-local-args.patch"
+    xattr_dst="${ROOT}/feeds/packages/utils/${pkg}/patches/001-xattrat-local-args.patch"
+    if [[ -f "${xattr_patch}" && -d "${ROOT}/feeds/packages/utils/${pkg}" ]]; then
+      mkdir -p "$(dirname "${xattr_dst}")"
+      cp -f "${xattr_patch}" "${xattr_dst}"
+      log "OK ${pkg} local struct xattr_args (Linux 6.12 headers)"
+    else
+      die "${pkg} xattr patch missing or package not in feeds/packages"
+    fi
+  done
 else
   # Still verify overlay without touching feeds tree
   "${CUSTOM_SCRIPTS_DIR}/verify-overlay.sh"
