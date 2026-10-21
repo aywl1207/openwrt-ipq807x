@@ -52,10 +52,21 @@ DEVICE=dynalink_dl-wrx36 ./custom/scripts/build.sh
 
 ## Upstream sync
 
+AgustinLorenzo `main_nss` is still the NSS base (`custom/UPSTREAM_SHA`).
+Official OpenWrt `main` moved qualcommax to the PPE stack and kernel 6.18 in
+July–August 2026. This fork stays on the NSS-DP / ECM stack, so kernel and
+in-tree security updates are taken from the last OpenWrt `main` commit that
+still has generic Linux 6.12 (currently 6.12.112), not from a reset onto
+`main` or `openwrt-25.12`.
+
 1. Actions → **Sync upstream** (`sync-upstream.yml`)
 2. Backs up `PRESERVE.list` paths → `git reset --hard upstream/main_nss` → restore
 3. Updates `custom/UPSTREAM_SHA`
 4. Re-clones `luci-theme-argon` into `package/`
+
+`force=true` resets the whole tree to AgustinLorenzo and drops the 6.12.112
+generic patches plus the in-tree OpenSSL / mbedTLS / wolfSSL / CA updates.
+Do not force-sync unless that downgrade is intentional.
 
 ## Adding a new customization
 

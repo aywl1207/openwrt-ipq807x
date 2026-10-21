@@ -3,6 +3,10 @@ name: Sync upstream
 # Manual only. Resets to AgustinLorenzo/openwrt main_nss when it moves
 # (tracked in custom/UPSTREAM_SHA), unless force=true.
 # Backup/restore logic: custom/scripts/sync-*.sh + custom/PRESERVE.list
+#
+# force=true checks out that stale NSS base again. It removes the generic
+# Linux 6.12.112 update and the in-tree OpenSSL / mbedTLS / wolfSSL /
+# ca-certificates updates, which are not part of AgustinLorenzo/main_nss.
 
 on:
   workflow_dispatch:
