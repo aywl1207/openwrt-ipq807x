@@ -30,9 +30,9 @@ chmod_fork_scripts
 materialize_overlay
 append_feeds_conf
 
-# apply-go-optimize.sh and the feed patches (avahi, attr) edit the
+# apply-go-optimize.sh and the feed patches (avahi, attr, acl) edit the
 # packages clone. The next `feeds update` then refuses to merge. Drop
-# those uncommitted edits first; both are applied again after the update.
+# those uncommitted edits first; they are applied again after the update.
 # custom_feed is a src-link into this repo, so only reset a directory
 # whose git root is the feed clone itself.
 reset_dirty_feed_clones() {
