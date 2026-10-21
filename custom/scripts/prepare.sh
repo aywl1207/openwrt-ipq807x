@@ -30,12 +30,36 @@ chmod_fork_scripts
 materialize_overlay
 append_feeds_conf
 
+# apply-go-optimize.sh and the avahi slot patch edit the packages feed
+# clone. The next `feeds update` then refuses to merge. Drop those
+# uncommitted edits first; both are applied again after the update.
+# custom_feed is a src-link into this repo, so only reset a directory
+# whose git root is the feed clone itself.
+reset_dirty_feed_clones() {
+  local dir top feed
+  local -a dirs=()
+  shopt -s nullglob
+  dirs=("${ROOT}/feeds"/*)
+  shopt -u nullglob
+  for dir in "${dirs[@]}"; do
+    [[ -d "${dir}/.git" ]] || continue
+    top="$(git -C "${dir}" rev-parse --show-toplevel 2>/dev/null)" || continue
+    [[ "$(readlink -f "${top}")" == "$(readlink -f "${dir}")" ]] || continue
+    [[ -n "$(git -C "${dir}" status --porcelain)" ]] || continue
+    feed="$(basename "${dir}")"
+    info "Reset uncommitted edits in feeds/${feed} before update"
+    git -C "${dir}" reset --hard HEAD
+    git -C "${dir}" clean -fd
+  done
+}
+
 if [[ "${DO_FEEDS}" -eq 1 ]]; then
   need_cmd make
   info "feeds update / install"
   # Ensure custom_feed is registered (absolute src-link)
   grep -qE '^src-link[[:space:]]+custom_feed[[:space:]]' feeds.conf.default \
     || die "feeds.conf.default missing src-link custom_feed after append_feeds_conf"
+  reset_dirty_feed_clones
   ./scripts/feeds update -a
   # Local feed first so install -a sees luci-app-dns-rewrites
   ./scripts/feeds update custom_feed
