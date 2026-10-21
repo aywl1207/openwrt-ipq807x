@@ -12,7 +12,8 @@ custom/
 │   ├── luci-app-wol-api/
 │   └── udp-broadcast-relay-redux/
 ├── patches/               # copied onto official feeds after `prepare.sh --feeds`
-│   └── avahi/             # legacy-unicast slot count
+│   ├── avahi/             # legacy-unicast slot count
+│   └── attr/              # local struct xattr_args for Linux 6.12 headers
 ├── README.md              # short maintainer index
 ├── config/
 │   ├── clean_seed.config  # package enable/disable (CONFIG_PACKAGE_* only)
@@ -44,7 +45,7 @@ custom/
 ## Daily commands
 
 ```bash
-./custom/scripts/prepare.sh --feeds      # overlay + feeds + Go strip + avahi patch
+./custom/scripts/prepare.sh --feeds      # overlay + feeds + Go strip + feed patches
 ./custom/scripts/prepare.sh --config     # + defconfig + verify
 ./custom/scripts/build.sh                # full build
 DEVICE=dynalink_dl-wrx36 ./custom/scripts/build.sh

@@ -1,0 +1,17 @@
+--- a/libmisc/xattrat.c
++++ b/libmisc/xattrat.c
+@@ -26,6 +26,14 @@
+ #include "xattrat.h"
+ 
+ #pragma GCC diagnostic ignored "-Wunused-parameter"
++
++/* 6.12 linux/xattr.h has no struct xattr_args (added in 6.13). Musl still
++ * defines __NR_*xattrat. Keep the 16-byte ABI; 6.12 returns ENOSYS. */
++struct xattr_args {
++	unsigned long long value __attribute__((aligned(8)));
++	unsigned int size;
++	unsigned int flags;
++};
+ 
+ ssize_t
+ getxattrat(int dirfd, const char *path, int at_flags, const char *name,

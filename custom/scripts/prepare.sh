@@ -30,9 +30,9 @@ chmod_fork_scripts
 materialize_overlay
 append_feeds_conf
 
-# apply-go-optimize.sh and the avahi slot patch edit the packages feed
-# clone. The next `feeds update` then refuses to merge. Drop those
-# uncommitted edits first; both are applied again after the update.
+# apply-go-optimize.sh and the feed patches (avahi, attr) edit the
+# packages clone. The next `feeds update` then refuses to merge. Drop
+# those uncommitted edits first; both are applied again after the update.
 # custom_feed is a src-link into this repo, so only reset a directory
 # whose git root is the feed clone itself.
 reset_dirty_feed_clones() {
@@ -106,6 +106,17 @@ if [[ "${DO_FEEDS}" -eq 1 ]]; then
     log "OK avahi legacy-unicast slots patch (1024)"
   else
     die "avahi slots patch missing or avahi package not installed"
+  fi
+  # attr 2.6.0 compiles *xattrat because musl defines the syscall numbers.
+  # Kernel 6.12 uapi has no struct xattr_args. Re-copy after every reset.
+  attr_xattr_patch="${CUSTOM_DIR}/patches/attr/001-xattrat-local-args.patch"
+  attr_xattr_dst="${ROOT}/feeds/packages/utils/attr/patches/001-xattrat-local-args.patch"
+  if [[ -f "${attr_xattr_patch}" && -d "${ROOT}/feeds/packages/utils/attr" ]]; then
+    mkdir -p "$(dirname "${attr_xattr_dst}")"
+    cp -f "${attr_xattr_patch}" "${attr_xattr_dst}"
+    log "OK attr local struct xattr_args (Linux 6.12 headers)"
+  else
+    die "attr xattr patch missing or attr package not in feeds/packages"
   fi
 else
   # Still verify overlay without touching feeds tree
