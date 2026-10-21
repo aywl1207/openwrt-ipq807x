@@ -20,9 +20,12 @@ LAN clients → dnsmasq:53 → https-dns-proxy:5053 → DoH
 | `65-ram-opt.conf` + `zz-net-perf.conf` | `drop_caches` cron |
 | `mem-watch` + pstore | Treat NSS SUnreclaim as a leak |
 
+`mem-watch` keeps the 5-minute series in `/tmp/mem-watch.ring` (tmpfs). It appends `/root/crashlogs/mem-watch.log` only when MemAvailable drops under 64MiB, or when logread shows an OOM, and that snapshot includes the recent ring.
+
 ```bash
 ls -la /root/crashlogs/
 cat /root/crashlogs/LAST
+tail -100 /tmp/mem-watch.ring
 tail -100 /root/crashlogs/mem-watch.log
 ```
 
@@ -50,6 +53,8 @@ uci set sqm.wan_sqm.script='nss-zk.qos'
 uci commit sqm
 /etc/init.d/sqm-nss-defer restart
 ```
+
+`restart` replaces the shaper so a new rate is applied. Do not run `/etc/init.d/sqm restart` (that stop/start is the `act_nssmirred` panic path). `stop` and shutdown leave the live qdisc in place.
 
 ---
 

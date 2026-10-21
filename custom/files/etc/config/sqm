@@ -3,7 +3,8 @@
 # Script: nss-zk.qos (hardware nsstbl + nssfq_codel via qca-nss-drv-qdisc/igs)
 #
 # Instance stays DISABLED until you set real download/upload (kbit/s).
-# After setting rates: uci set sqm.wan.enabled='1'; /etc/init.d/sqm restart
+# After setting rates: uci set sqm.wan.enabled='1'; /etc/init.d/sqm-nss-defer restart
+# Do not call /etc/init.d/sqm restart — that stop/start races act_nssmirred.
 #
 # Do NOT use piece_of_cake.qos / layer_cake.qos on NSS builds (CPU-only cake).
 # Do NOT enable OpenWrt firewall software/hardware flow offloading with SQM.

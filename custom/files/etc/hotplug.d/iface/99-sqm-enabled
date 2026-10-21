@@ -1,19 +1,75 @@
 #!/bin/sh
-# Start SQM when WAN is really up. Never restart/stop (act_nssmirred panic).
+# Start SQM when WAN is really up. Never stop or restart here (act_nssmirred panic).
 # nss-zk.qos names IFB after the SQM UCI interface, which may be logical
-# (wan) or physdev (10g-2). Check both. Defer until carrier + NSS exist.
-[ "$ACTION" = "ifup" ] || exit 0
-[ -x /etc/init.d/sqm ] || exit 0
-[ -f /etc/config/sqm ] || exit 0
+# (wan) or physdev (10g-2). Check both.
+#
+# Do not sleep in this process. Iface hotplug is serialized, and a stall
+# delays firewall and netifd. The NSS wait runs in a detached session.
+# Boot also starts queues from S99 sqm-nss-defer.
 
 . /lib/functions.sh
 
-LOCK=/var/lock/sqm-hotplug.lock
-mkdir -p /var/lock
-if ! mkdir "$LOCK" 2>/dev/null; then
+_ifb_active() {
+	local name="$1"
+	[ -n "$name" ] || return 1
+	[ -d "/sys/devices/virtual/net/ifb@${name}" ] || return 1
+	tc qdisc show dev "ifb@${name}" 2>/dev/null | grep -q nsstbl
+}
+
+_dev_shaped() {
+	local name="$1"
+	[ -n "$name" ] || return 1
+	[ -d "/sys/class/net/${name}" ] || return 1
+	tc qdisc show dev "$name" 2>/dev/null | grep -q nsstbl
+}
+
+_shaped() {
+	_ifb_active "$INTERFACE" || _ifb_active "$DEVICE" \
+		|| _dev_shaped "$INTERFACE" || _dev_shaped "$DEVICE"
+}
+
+worker() {
+	local n=0
+
+	if [ -f /usr/lib/sqm/nss-lock.sh ]; then
+		. /usr/lib/sqm/nss-lock.sh
+		nss_sqm_lock_wait || exit 0
+	fi
+
+	while [ "$n" -lt 20 ]; do
+		if [ -d /sys/module/qca_nss_drv ] && [ -d /proc/sys/dev/nss ]; then
+			break
+		fi
+		sleep 1
+		n=$((n + 1))
+	done
+
+	if [ ! -d /sys/module/qca_nss_drv ] || [ ! -d /proc/sys/dev/nss ]; then
+		logger -t sqm-hotplug "ifup $INTERFACE/$DEVICE — NSS not ready, defer to S99"
+		nss_sqm_unlock 2>/dev/null || true
+		exit 0
+	fi
+
+	if _shaped; then
+		logger -t sqm-hotplug "ifup $INTERFACE/$DEVICE — became active while waiting, skip"
+		nss_sqm_unlock 2>/dev/null || true
+		exit 0
+	fi
+
+	logger -t sqm-hotplug "ifup $INTERFACE/$DEVICE — starting sqm (no restart)"
+	SQM_NO_WAIT=1 /etc/init.d/sqm start
+	nss_sqm_unlock 2>/dev/null || true
+	exit 0
+}
+
+if [ "${SQM_HOTPLUG_WORKER:-}" = 1 ]; then
+	worker
 	exit 0
 fi
-trap "rmdir $LOCK 2>/dev/null" EXIT
+
+[ "$ACTION" = "ifup" ] || exit 0
+[ -x /etc/init.d/sqm ] || exit 0
+[ -f /etc/config/sqm ] || exit 0
 
 match=0
 _check_queue() {
@@ -30,42 +86,13 @@ config_load sqm
 config_foreach _check_queue queue
 [ "$match" -eq 1 ] || exit 0
 
-_ifb_active() {
-	local name="$1"
-	[ -n "$name" ] || return 1
-	[ -d "/sys/devices/virtual/net/ifb@${name}" ] || return 1
-	tc qdisc show dev "ifb@${name}" 2>/dev/null | grep -q nsstbl
-}
-
-_dev_shaped() {
-	local name="$1"
-	[ -n "$name" ] || return 1
-	[ -d "/sys/class/net/${name}" ] || return 1
-	tc qdisc show dev "$name" 2>/dev/null | grep -q nsstbl
-}
-
-if _ifb_active "$INTERFACE" || _ifb_active "$DEVICE" \
-	|| _dev_shaped "$INTERFACE" || _dev_shaped "$DEVICE"; then
+if _shaped; then
 	logger -t sqm-hotplug "ifup $INTERFACE/$DEVICE — SQM already active, skip"
 	exit 0
 fi
 
-# Let NSS / ECM finish bind before attaching nssmirred.
-n=0
-while [ "$n" -lt 15 ]; do
-	if [ -d /sys/module/qca_nss_drv ] && [ -d /proc/sys/dev/nss ]; then
-		break
-	fi
-	sleep 1
-	n=$((n + 1))
-done
-sleep 3
-
-if _ifb_active "$INTERFACE" || _ifb_active "$DEVICE" \
-	|| _dev_shaped "$INTERFACE" || _dev_shaped "$DEVICE"; then
-	logger -t sqm-hotplug "ifup $INTERFACE/$DEVICE — became active while waiting, skip"
-	exit 0
-fi
-
-logger -t sqm-hotplug "ifup $INTERFACE/$DEVICE — starting sqm (no restart)"
-/etc/init.d/sqm start
+# New session so netifd can reap this script without killing the waiter.
+SQM_HOTPLUG_WORKER=1 INTERFACE="$INTERFACE" DEVICE="$DEVICE" \
+	setsid /bin/sh /etc/hotplug.d/iface/99-sqm-enabled \
+	</dev/null >/dev/null 2>&1 &
+exit 0

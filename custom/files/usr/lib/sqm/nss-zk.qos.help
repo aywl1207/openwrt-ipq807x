@@ -16,4 +16,5 @@ Fork defaults inside this script:
   - codel interval 50ms if not overridden
   - queue window 15ms (NSS firmware already buffers ~2×)
   - never `ip link del` IFB or rmmod NSS modules (safer with ECM)
-  - deletes stale ingress/root before re-add so LuCI restart works
+  - does not delete a live ingress qdisc; adds a missing nssmirred filter only
+  - apply rate changes with /etc/init.d/sqm-nss-defer restart (not stock sqm restart)

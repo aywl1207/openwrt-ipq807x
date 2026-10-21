@@ -5,7 +5,7 @@
 # - New queues default disabled (NSS panic-safe)
 # - NEVER rewrite .enabled on existing queues (keep-settings must survive)
 
-# Soft/hardware flow offload fights SQM + ECM — keep off (also in 99-qol_nss)
+# Soft/hardware flow offload fights SQM + ECM — keep off (also in 99-nss-perf-pins)
 [ -n "$(uci -q get firewall.@defaults[0])" ] && {
 	uci -q set firewall.@defaults[0].flow_offloading=0
 	uci -q set firewall.@defaults[0].flow_offloading_hw=0
@@ -40,26 +40,48 @@ if [ "$_any_queue" -eq 0 ]; then
 		set sqm.wan.iqdisc_opts='interval 50ms'
 		set sqm.wan.linklayer='none'
 		set sqm.wan.overhead='18'
+		set sqm.wan.squash_dscp='0'
+		set sqm.wan.squash_ingress='0'
 	EOF
 fi
+
+# Cake qdisc options are rejected by nssfq_codel and leave the shaper half-up.
+_drop_cake_opts() {
+	local sid="$1" opt="$2" val
+	val="$(uci -q get "sqm.${sid}.${opt}")"
+	case "$val" in
+		*diffserv*|*ack-filter*|*dual-dsthost*|*dual-srchost*|*wash*)
+			uci -q set "sqm.${sid}.${opt}=interval 50ms"
+			;;
+	esac
+}
 
 # Pin NSS script/qdisc on every queue. Do not touch .enabled.
 _any_enabled=0
 for sid in $(uci -q show sqm | sed -n "s/^sqm\.\([^=]*\)=queue.*/\1/p"); do
 	script="$(uci -q get sqm.$sid.script)"
 	qdisc="$(uci -q get sqm.$sid.qdisc)"
+	migrated=0
 	case "$script" in
 		piece_of_cake.qos|layer_cake.qos|simple.qos|simplest.qos|simplest_tbf.qos|"")
 			uci -q set sqm.$sid.script='nss-zk.qos'
 			uci -q set sqm.$sid.qdisc='fq_codel'
+			migrated=1
 			;;
 	esac
 	case "$qdisc" in
 		cake)
 			uci -q set sqm.$sid.qdisc='fq_codel'
 			uci -q set sqm.$sid.script='nss-zk.qos'
+			migrated=1
 			;;
 	esac
+	if [ "$migrated" -eq 1 ]; then
+		_drop_cake_opts "$sid" eqdisc_opts
+		_drop_cake_opts "$sid" iqdisc_opts
+		uci -q set "sqm.${sid}.squash_dscp=0"
+		uci -q set "sqm.${sid}.squash_ingress=0"
+	fi
 	en="$(uci -q get sqm.$sid.enabled)"
 	[ "$en" = "1" ] && _any_enabled=1
 done

@@ -35,7 +35,53 @@ fi
 
 normalize_domain() {
 	# trim, strip trailing dots, lowercase (ASCII)
-	echo "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//;s/\.\+$//' | tr 'A-Z' 'a-z'
+	printf '%s' "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//;s/\.\+$//' | tr 'A-Z' 'a-z' | tr -d '\r\n'
+}
+
+# Reject bytes that would split a dnsmasq line or inject a second directive.
+# One bad UCI row must not stop dnsmasq from loading the rest of the file.
+safe_token() {
+	[ -n "$1" ] || return 1
+	[ "${#1}" -le 253 ] || return 1
+	# awk splits on newline, so a multi-line value would look clean per line.
+	case "$1" in
+		*[[:space:]]*) return 1 ;;
+	esac
+	printf '%s' "$1" | awk '
+		BEGIN { ok = 1 }
+		{
+			if ($0 ~ /[[:space:]#\\"`\047]/) ok = 0
+			if ($0 !~ /[0-9A-Za-z]/) ok = 0
+		}
+		END { exit ok ? 0 : 1 }
+	'
+}
+
+valid_ip() {
+	[ -n "$1" ] || return 1
+	case "$1" in
+		*[[:space:]]*) return 1 ;;
+	esac
+	printf '%s' "$1" | awk -F. '
+		NF == 4 {
+			ok = 1
+			for (i = 1; i <= 4; i++) {
+				if ($i !~ /^[0-9]+$/ || $i + 0 > 255) ok = 0
+			}
+			exit ok ? 0 : 1
+		}
+		{ exit 1 }
+	' && return 0
+	printf '%s' "$1" | awk '
+		BEGIN { ok = 0 }
+		{
+			if ($0 ~ /^[0-9A-Fa-f:]+$/ && index($0, ":") > 0 && index($0, ":::") == 0) {
+				n = split($0, p, "::")
+				if (n <= 2) ok = 1
+			}
+		}
+		END { exit ok ? 0 : 1 }
+	'
 }
 
 resolve_doh() {
@@ -79,6 +125,15 @@ ensure_confdir() {
 # --- build conf ------------------------------------------------------------
 
 DOH="$(resolve_doh)"
+if ! printf '%s' "$DOH" | grep -qE '^[A-Za-z0-9.:%_-]+#[0-9]{1,5}$'; then
+	logger -t dns-rewrite "bad upstream '${DOH}', using 127.0.0.1#5053"
+	DOH="127.0.0.1#5053"
+fi
+_doh_port="${DOH##*#}"
+if [ "$_doh_port" -gt 65535 ] 2>/dev/null; then
+	logger -t dns-rewrite "bad upstream port '${_doh_port}', using 127.0.0.1#5053"
+	DOH="127.0.0.1#5053"
+fi
 mkdir -p "$(dirname "$OUT")"
 TMP="$(mktemp 2>/dev/null)" || TMP="/tmp/dns-rewrites.$$"
 
@@ -114,8 +169,8 @@ config_load "$CFG"
 _rebind_seen=" "
 rebind_zone() {
 	local z
-	z=$(echo "$1" | sed 's/^\*\.//;s/^\.//;s|^/||;s|/$||')
-	[ -n "$z" ] || return 0
+	z=$(printf '%s' "$1" | sed 's/^\*\.//;s/^\.//;s|^/||;s|/$||')
+	safe_token "$z" || return 0
 	case "$_rebind_seen" in
 	*" $z "*) return 0 ;;
 	esac
@@ -149,17 +204,28 @@ add_rewrite() {
 
 	domain=$(normalize_domain "$domain")
 	[ -n "$domain" ] || return 0
+	if ! safe_token "$domain"; then
+		logger -t dns-rewrite "skip unsafe domain '${domain}'"
+		return 0
+	fi
 
-	[ -n "$comment" ] && echo "# ${comment}"
+	if [ -n "$comment" ]; then
+		# Newlines would inject a second dnsmasq directive. Spaces stay.
+		comment=$(printf '%s' "$comment" | tr -d '\r\n')
+		[ -n "$comment" ] && echo "# ${comment}"
+	fi
 
 	case "$type" in
 	public)
-		host=$(echo "$domain" | sed 's|^\*\.||;s|^\.||;s|^/||;s|/$||')
-		[ -n "$host" ] || return 0
+		host=$(printf '%s' "$domain" | sed 's|^\*\.||;s|^\.||;s|^/||;s|/$||')
+		safe_token "$host" || return 0
 		echo "server=/${host}/${DOH}"
 		;;
 	private|*)
-		[ -n "$ip" ] || return 0
+		if ! valid_ip "$ip"; then
+			logger -t dns-rewrite "skip ${domain}: bad address"
+			return 0
+		fi
 		case "$domain" in
 		\*.*)
 			# dnsmasq zone form: leading-dot = name + subdomains

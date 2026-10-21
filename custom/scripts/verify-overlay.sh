@@ -63,6 +63,7 @@ check_x etc/init.d/cloudflared
 check_x etc/init.d/sqm-nss-defer
 check_grep etc/init.d/sqm-nss-defer 'START=99'
 check_grep etc/init.d/sqm-nss-defer 'sqm disable'
+check_grep etc/init.d/sqm-nss-defer '/etc/init.d/sqm stop'
 check_grep etc/uci-defaults/97-sqm-nss-optimize 'sqm disable'
 check_file etc/config/https-dns-proxy
 check_file etc/config/cloudflared
@@ -78,6 +79,7 @@ check_x usr/sbin/mem-watch.sh
 check_grep etc/init.d/pstore-save 'pstore'
 check_grep etc/uci-defaults/98-component-optimize 'pstore-save'
 check_grep etc/uci-defaults/98-component-optimize 'mem-watch.sh'
+check_grep usr/sbin/mem-watch.sh '/tmp/mem-watch.ring'
 check_grep etc/config/https-dns-proxy 'listen_port.*5053'
 check_grep etc/config/https-dns-proxy 'resolver_url'
 check_grep etc/uci-defaults/96-dns-gateway-mode '127.0.0.1#5053'
@@ -145,6 +147,15 @@ check_grep usr/lib/sqm/nss-zk.qos 'keeping NSS modules loaded'
 check_grep usr/lib/sqm/nss-zk.qos '_has_nsstbl'
 check_grep usr/lib/sqm/nss-zk.qos 'no carrier'
 check_grep etc/hotplug.d/iface/99-sqm-enabled 'became active while waiting'
+check_grep etc/hotplug.d/iface/99-sqm-enabled 'setsid'
+check_grep etc/hotplug.d/iface/99-sqm-enabled 'SQM_NO_WAIT'
+check_file usr/lib/sqm/nss-lock.sh
+if grep -qE 'sqm (stop|restart)' "${ROOT}/files/etc/hotplug.d/iface/99-sqm-enabled" 2>/dev/null; then
+	log "FAIL 99-sqm-enabled stops or restarts sqm"
+	fail=1
+else
+	log "OK  99-sqm-enabled does not stop/restart sqm"
+fi
 check_grep etc/uci-defaults/97-sqm-nss-optimize 'Do NOT enable stock S50sqm'
 check_grep etc/sysctl.d/zz-net-perf.conf 'nf_conntrack_max'
 check_grep etc/sysctl.d/zz-net-perf.conf 'send_redirects'

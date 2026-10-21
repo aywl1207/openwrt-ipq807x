@@ -23,7 +23,8 @@
 # Fork tweaks (custom_main_nss / ~1GB IPQ807x):
 #   - default codel interval 50ms (upstream 100ms) for snappier AQM
 #   - keep IFB + NSS modules loaded (ip link del ifb / rmmod panics)
-#   - delete stale ingress before re-add so LuCI restart works
+#   - never delete a live ingress qdisc; only add a missing nssmirred filter
+#   - a nsstbl without nssfq_codel is repaired, not treated as done
 #   - MAXQLIMIT 15ms (NSS firmware already buffers ~2x the configured limit;
 #     the old 80ms floor became ~160ms of extra latency)
 #
@@ -31,22 +32,6 @@
 . /lib/functions.sh
 . /lib/functions/network.sh
 . "${SQM_LIB_DIR}/defaults.sh"
-
-###############################################################################
-# Hotplug guard
-#
-# On kernel 5.15+, bringing up the IFB interface under high load can crash
-# the router when triggered by hotplug. If a qdisc is already installed on
-# the IFB device, skip re-initialization entirely.
-###############################################################################
-if [ -n "${ACTION}" ] && [ -n "${INTERFACE}" ] && [ -n "${DEVICE}" ]; then
-	DEV="ifb@${INTERFACE}"
-	sqm_debug "hotplug: ${ACTION} for ${INTERFACE} (${DEVICE})"
-	if $TC qdisc show dev $DEV >/dev/null 2>&1; then
-		sqm_log "hotplug: qdisc already present on $DEV, skipping"
-		exit 0
-	fi
-fi
 
 ###############################################################################
 # Constants
@@ -124,6 +109,15 @@ calc_limit() {
 	local speed=$1 mtu=$2 delay_ms=$3
 	local limit
 
+	# get_mtu can be empty before the netdev is fully registered.
+	[ "$mtu" -ge 64 ] 2>/dev/null || mtu=1500
+	[ "$speed" -gt 0 ] 2>/dev/null || speed=0
+	[ "$delay_ms" -gt 0 ] 2>/dev/null || delay_ms=$MAXQLIMIT_MS
+	if [ "$speed" -eq 0 ]; then
+		echo $MINLIMIT
+		return
+	fi
+
 	limit=$(( speed * 125 * delay_ms / 1000 / mtu ))
 
 	if [ "$limit" -lt "$MINLIMIT" ]; then
@@ -143,6 +137,7 @@ calc_effective_mtu() {
 	local mtu overhead
 
 	mtu=$(get_mtu $IFACE)
+	[ "$mtu" -ge 64 ] 2>/dev/null || mtu=1500
 	overhead="${OVERHEAD}"
 
 	if [ "${overhead}" -eq 0 ] 2>/dev/null || [ -z "${overhead}" ]; then
@@ -260,6 +255,41 @@ _has_nsstbl() {
 	$TC qdisc show dev "$1" 2>/dev/null | grep -q nsstbl
 }
 
+_has_nssfq() {
+	$TC qdisc show dev "$1" 2>/dev/null | grep -q nssfq_codel
+}
+
+_has_nssmirred() {
+	$TC filter show dev "$1" parent ffff: 2>/dev/null | grep -q nssmirred
+}
+
+# Add ingress + nssmirred only when missing. Never delete a live ingress
+# qdisc — that is the act_nssmirred panic path on IPQ807x.
+_ensure_redirect() {
+	if $TC qdisc show dev $IFACE 2>/dev/null | grep -q 'ffff:'; then
+		if _has_nssmirred "$IFACE"; then
+			return 0
+		fi
+		sqm_log "ingress: adding missing nssmirred on ${IFACE}"
+		$TC filter add dev $IFACE parent ffff: protocol all \
+			u32 match u32 0 0 action nssmirred redirect dev $DEV fromdev $IFACE || {
+			sqm_error "ingress: failed to add redirect filter"
+			return 1
+		}
+		return 0
+	fi
+
+	$TC qdisc add dev $IFACE handle ffff: ingress || {
+		sqm_error "ingress: failed to add ingress qdisc"
+		return 1
+	}
+	$TC filter add dev $IFACE parent ffff: protocol all \
+		u32 match u32 0 0 action nssmirred redirect dev $DEV fromdev $IFACE || {
+		sqm_error "ingress: failed to add redirect filter"
+		return 1
+	}
+}
+
 _has_carrier() {
 	local dev="$1" car
 	[ -e "/sys/class/net/${dev}/carrier" ] || return 1
@@ -267,14 +297,23 @@ _has_carrier() {
 	[ "$car" = "1" ]
 }
 
+_nss_ready() {
+	[ -d /sys/module/qca_nss_drv ] && [ -d /proc/sys/dev/nss ]
+}
+
 _wait_nss() {
 	local i=0
+
+	_nss_ready && return 0
+	# Hotplug already waited in a detached process. Do not stall it again.
+	if [ "${SQM_NO_WAIT:-0}" = 1 ]; then
+		sqm_log "_wait_nss: NSS not ready, defer"
+		return 1
+	fi
 	while [ "$i" -lt 20 ]; do
-		if [ -d /sys/module/qca_nss_drv ] && [ -d /proc/sys/dev/nss ]; then
-			return 0
-		fi
 		sleep 1
 		i=$((i + 1))
+		_nss_ready && return 0
 	done
 	sqm_error "_wait_nss: NSS driver not ready"
 	return 1
@@ -283,21 +322,26 @@ _wait_nss() {
 egress() {
 	local mtu
 
-	# Never tear down a live nsstbl — second start / ifup would race nssmirred.
-	if _has_nsstbl "$IFACE"; then
-		sqm_log "egress: nsstbl already on ${IFACE}, skip"
-		return 0
-	fi
-
 	[ -z "$ETARGET" ] && ETARGET="5ms"
 
 	mtu=$(calc_effective_mtu "egress")
 	[ -z "$ELIMIT" ] && ELIMIT=$(calc_limit ${UPLINK} ${mtu} ${MAXQLIMIT_MS})
 
-	add_nsstbl ${IFACE} ${UPLINK} ${ESHAPER_BURST_DUR_US} ${mtu} || {
-		sqm_error "egress: failed to add nsstbl shaper"
-		return 1
-	}
+	# Never tear down a live nsstbl. A shaper without AQM is not "done":
+	# the next start only adds the missing nssfq_codel child.
+	if _has_nsstbl "$IFACE" && _has_nssfq "$IFACE"; then
+		sqm_log "egress: nsstbl already on ${IFACE}, skip"
+		return 0
+	fi
+
+	if _has_nsstbl "$IFACE"; then
+		sqm_log "egress: nsstbl present without nssfq_codel on ${IFACE}"
+	else
+		add_nsstbl ${IFACE} ${UPLINK} ${ESHAPER_BURST_DUR_US} ${mtu} || {
+			sqm_error "egress: failed to add nsstbl shaper"
+			return 1
+		}
+	fi
 
 	# shellcheck disable=2153
 	add_nssfq_codel ${IFACE} ${UPLINK} ${ETARGET} ${ELIMIT} ${mtu} "${EQDISC_OPTS}" "${EECN}" || {
@@ -308,12 +352,6 @@ egress() {
 
 ingress() {
 	local mtu
-
-	# Fully up already — do not delete ingress/nssmirred (IPQ807x panic).
-	if _has_nsstbl "$DEV"; then
-		sqm_log "ingress: nsstbl already on ${DEV}, skip"
-		return 0
-	fi
 
 	[ -z "$ITARGET" ] && ITARGET="5ms"
 
@@ -328,24 +366,22 @@ ingress() {
 	fi
 	$IP link set dev $DEV up
 
-	# Only add ingress+nssmirred if missing. Never delete a live ingress
-	# qdisc — that is the act_nssmirred panic path on IPQ807x.
-	if ! $TC qdisc show dev $IFACE 2>/dev/null | grep -q 'ffff:'; then
-		$TC qdisc add dev $IFACE handle ffff: ingress || {
-			sqm_error "ingress: failed to add ingress qdisc"
-			return 1
-		}
-		$TC filter add dev $IFACE parent ffff: protocol all \
-			u32 match u32 0 0 action nssmirred redirect dev $DEV fromdev $IFACE || {
-			sqm_error "ingress: failed to add redirect filter"
+	_ensure_redirect || return 1
+
+	# Fully up already — do not delete ingress/nssmirred (IPQ807x panic).
+	if _has_nsstbl "$DEV" && _has_nssfq "$DEV"; then
+		sqm_log "ingress: nsstbl already on ${DEV}, skip"
+		return 0
+	fi
+
+	if _has_nsstbl "$DEV"; then
+		sqm_log "ingress: nsstbl present without nssfq_codel on ${DEV}"
+	else
+		add_nsstbl ${DEV} ${DOWNLINK} ${ISHAPER_BURST_DUR_US} ${mtu} || {
+			sqm_error "ingress: failed to add nsstbl shaper"
 			return 1
 		}
 	fi
-
-	add_nsstbl ${DEV} ${DOWNLINK} ${ISHAPER_BURST_DUR_US} ${mtu} || {
-		sqm_error "ingress: failed to add nsstbl shaper"
-		return 1
-	}
 
 	# shellcheck disable=2153
 	add_nssfq_codel ${DEV} ${DOWNLINK} ${ITARGET} ${ILIMIT} ${mtu} "${IQDISC_OPTS}" "${IECN}" || {
@@ -379,6 +415,21 @@ sqm_prepare_script() {
 	done
 }
 
+# Both directions that have a non-zero rate must have shaper + AQM.
+# Ingress also needs the nssmirred redirect. Used to skip a no-op start
+# without hiding a half-applied tree.
+_shape_complete() {
+	local eg_ok=1 in_ok=1
+
+	if [ "${UPLINK:-0}" -ne 0 ] 2>/dev/null; then
+		_has_nsstbl "$IFACE" && _has_nssfq "$IFACE" || eg_ok=0
+	fi
+	if [ "${DOWNLINK:-0}" -ne 0 ] 2>/dev/null; then
+		_has_nsstbl "$DEV" && _has_nssfq "$DEV" && _has_nssmirred "$IFACE" || in_ok=0
+	fi
+	[ "$eg_ok" = 1 ] && [ "$in_ok" = 1 ]
+}
+
 sqm_start() {
 	local protocol
 
@@ -399,12 +450,16 @@ sqm_start() {
 		return 0
 	fi
 
-	if _has_nsstbl "$IFACE" && _has_nsstbl "$DEV"; then
+	if _shape_complete; then
 		sqm_log "sqm_start: already active on ${IFACE} / ${DEV}"
 		return 0
 	fi
 
-	_wait_nss || return 1
+	if ! _wait_nss; then
+		# Detached hotplug will retry. Do not fail the boot service for that.
+		[ "${SQM_NO_WAIT:-0}" = 1 ] && return 0
+		return 1
+	fi
 
 	ipt_log_restart
 	check_addr || return $?

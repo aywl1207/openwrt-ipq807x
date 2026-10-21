@@ -9,7 +9,7 @@
 | **UDP broadcast relay** | `custom/feed/udp-broadcast-relay-redux` | seed | Binary + init; site port/iface UCI is device-only |
 | **mDNS** | `avahi-nodbus-daemon` | always | Reflector `br-lan`↔`br-lan2`; not `mdns-repeater` |
 | **OOM / crash** | `kmod-pstore` + `pstore-save` | boot | Dumps → `/root/crashlogs/` |
-| **mem-watch** | `/usr/sbin/mem-watch.sh` | cron `*/5` | RAM pressure log |
+| **mem-watch** | `/usr/sbin/mem-watch.sh` | cron `*/5` | Ring on tmpfs; overlay only under pressure or OOM |
 | **zram-swap** | — | 256 MiB, `lzo-rle` | Avoid half-RAM default |
 | **Tailscale** | package + LuCI community | user | GOGC=10, GOMEMLIMIT |
 | **cloudflared** | package | optional | Token on device only |

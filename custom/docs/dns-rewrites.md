@@ -45,7 +45,9 @@ If the image still has ucitrack, uci-defaults also maps
 
 Apply is soft on `dhcp` UCI: only sets `confdir=/etc/dnsmasq.d` when **unset**.
 It does **not** clear `server` / `address` / `cname`. dnsmasq restarts only when
-the generated conf (or confdir) changes.
+the generated conf (or confdir) changes. A row with an unsafe name or a
+non-address is skipped and logged, so one bad UCI entry cannot stop dnsmasq
+from loading the file.
 
 `/etc/config/dns_rewrite` is a **conffile** (survives opkg upgrade).
 

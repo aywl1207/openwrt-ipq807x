@@ -1,18 +1,46 @@
 #!/bin/sh /etc/rc.common
 # Late SQM start for IPQ807x NSS. Stock S50sqm races WAN ifup / nssmirred.
-# Queue enable lives in UCI; this only calls start after boot is quiet.
-# nss-zk.qos is idempotent and skips when there is no carrier.
+# Queue enable lives in UCI. Boot calls start() only (no teardown).
+# restart() stops then starts so a new rate replaces the shaper.
+# stop()/shutdown leave the live qdisc in place (act_nssmirred).
+# Hotplug must keep calling start only; it never comes through here.
 
 START=99
+
+_lock() {
+	if [ -f /usr/lib/sqm/nss-lock.sh ]; then
+		. /usr/lib/sqm/nss-lock.sh
+		nss_sqm_lock_wait || return 1
+	fi
+	return 0
+}
+
+_unlock() {
+	nss_sqm_unlock 2>/dev/null || true
+}
 
 start() {
 	[ -x /etc/init.d/sqm ] || return 0
 	[ -f /etc/config/sqm ] || return 0
-	# LuCI SQM Save re-enables stock S50; strip it every boot.
+	_lock || return 0
+	# LuCI SQM Save re-enables stock S50; strip it every boot and restart.
 	/etc/init.d/sqm disable 2>/dev/null || true
 	/etc/init.d/sqm start
+	_unlock
 }
 
+# Shutdown and `stop` leave the shaper in place. Deleting ingress while
+# carrier is up is the act_nssmirred panic. Rate changes use restart().
 stop() {
 	return 0
+}
+
+restart() {
+	[ -x /etc/init.d/sqm ] || return 0
+	[ -f /etc/config/sqm ] || return 0
+	_lock || return 0
+	/etc/init.d/sqm stop
+	/etc/init.d/sqm disable 2>/dev/null || true
+	/etc/init.d/sqm start
+	_unlock
 }

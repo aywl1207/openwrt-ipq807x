@@ -6,8 +6,10 @@
 # address. When network.lan is static, keep the normal DHCPv4 server.
 #
 # Keep-settings: only repair the broken empty/disabled case. Do not rewrite
-# start/limit/leasetime, do not touch WAN / other interfaces, do not clear
-# a deliberate dhcp.lan.ignore.
+# start/limit/leasetime and do not touch WAN / other interfaces.
+# dhcpv4=server is left alone, including a deliberate ignore. ignore is
+# removed only together with the empty/disabled repair, because that combo
+# is what 15_odhcpd leaves behind when board.json has no lan protocol.
 
 [ -f /etc/config/dhcp ] || exit 0
 
